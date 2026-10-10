@@ -229,13 +229,15 @@ bun test tests/
 
 The install step reads the root `bun.lock` and fetches `typebox`, which the Pi extension and its tests import.
 
-CI also checks shell scripts, workflows, Markdown, relative links, and the bundled Bun tools. See [local checks](../CONTRIBUTING.md#things-that-will-fail-ci) for commands and [release instructions](../CONTRIBUTING.md#releasing) for versioning and the live Claude Code command check.
+CI also checks shell scripts, workflows, Markdown, relative links, and the bundled Bun tools. See [local checks](../CONTRIBUTING.md#things-that-will-fail-ci) for commands and [release instructions](../CONTRIBUTING.md#releasing) for versioning and the live Codex smoke test.
 
 ### Port scope and attribution
 
 The skill tree is synced against upstream `df58112` (v0.15.15).
 
-This repository ports Lauren Tan's pstack from Cursor to Claude Code and shares the skills with other runtimes. It includes seven cursor-team-kit skills and an independently authored `babysit` skill. The port supplies Claude Code plugin registration and routing, Codex manifests and shortcuts, the Codex tool mapping, the Pi package, extension, and tool mapping, and the GitHub Copilot hooks and tool mapping.
+This repository is an unofficial downstream distribution of Michael Denyer's [pstack-claude](https://github.com/michael-denyer/pstack-claude). His port adapts Lauren Tan's pstack from Cursor to Claude Code and shares the skills with other runtimes. It includes seven cursor-team-kit skills and an independently authored `babysit` skill. `pstack-claude` supplies Claude Code plugin registration and routing, the original Codex manifests, shortcuts, and tool mapping, the Pi package, extension, and tool mapping, and the GitHub Copilot hooks and tool mapping.
+
+The maintainer uses Codex daily and renamed the marketplace identity to `pstack@pstack-codex`. This fork mainly changes packaging, documentation, and Codex release verification. Other runtime adapters remain available, but this maintainer has performed live release verification only on Codex. This is an independent community project, not endorsed by OpenAI, Cursor, Michael Denyer, or Lauren Tan.
 
 Cursor-specific automations, sticky-mode metadata, the Grok Bot UI workflow, and the Cursor UI tutorial are excluded. [tools/upstream.json](../tools/upstream.json) records the revisions and exclusions, [tools/substitutions.json](../tools/substitutions.json) holds the Cursor-to-Claude rewrite rules, and [CHANGES.md](../CHANGES.md) records each release. The bundled `thermo-nuclear-code-quality-review` provides a maintainability review when a workflow calls for one.
 

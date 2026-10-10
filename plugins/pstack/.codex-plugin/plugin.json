@@ -1,10 +1,10 @@
 {
   "name": "pstack",
-  "version": "0.9.82",
-  "description": "Portable pstack workflows maintained and verified on Codex. The shared skills tree also includes adapters for other agent runtimes.",
+  "version": "0.9.83",
+  "description": "Unofficial Codex-focused distribution of Michael Denyer's pstack-claude, based on Lauren Tan's pstack. Maintainer-tested on Codex.",
   "author": {
-    "name": "Forrest0721",
-    "url": "https://github.com/Forrest0721"
+    "name": "Michael Denyer",
+    "url": "https://github.com/michael-denyer"
   },
   "homepage": "https://github.com/Forrest0721/pstack-codex",
   "repository": "https://github.com/Forrest0721/pstack-codex",
@@ -32,8 +32,8 @@
   "interface": {
     "displayName": "pstack",
     "shortDescription": "Rigorous, parallelizable agent workflows: go deep first, write less, verify everything",
-    "longDescription": "pstack guides agent work through poteto-mode's principles, parallel design exploration (architect/arena), adversarial multi-model review (interrogate), root-cause debugging, prose deslopping, and verified delivery. Skills are shared with the Claude Code build; on Codex, tool names resolve via the codex-tools mapping.",
-    "developerName": "Forrest0721 (based on Michael Denyer's port of Lauren Tan's pstack)",
+    "longDescription": "This unofficial distribution packages Michael Denyer's pstack-claude for a Codex-focused marketplace identity. Its core workflows derive from Lauren Tan's pstack. Forrest0721 maintains and tests this distribution on Codex; the shared skills also include inherited adapters for other runtimes.",
+    "developerName": "Michael Denyer's pstack-claude, maintained for Codex by Forrest0721",
     "category": "Developer Tools",
     "capabilities": [
       "Interactive",

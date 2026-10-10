@@ -1,8 +1,18 @@
 # pstack-codex
 
-Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) is an opinionated Cursor skill stack that improves agent outcomes. `pstack-codex` is a Codex-verified distribution based on Michael Denyer's [pstack-claude](https://github.com/michael-denyer/pstack-claude) port. It tracks upstream and carries named policy forks in [`tools/forks.json`](tools/forks.json).
+`pstack-codex` is an unofficial downstream distribution of Michael Denyer's [pstack-claude](https://github.com/michael-denyer/pstack-claude), which adapts Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) for Claude Code and other agent runtimes. The core workflows and original Codex plugin implementation come from `pstack-claude`.
 
-The shared Agent Skills tree can also run in compatible agent runtimes. This fork currently performs live release verification only on Codex. The Claude Code, Pi, GitHub Copilot, Prime Agent, OpenCode, and Gemini CLI instructions remain available for users who want to test those runtimes.
+I use Codex in my daily work, so I renamed the marketplace identity from `pstack@pstack-claude` to `pstack@pstack-codex`. So far, this fork mainly changes packaging, documentation, and Codex release verification. I plan to maintain it based on what I learn from real Codex work, while recording changes and crediting upstream sources.
+
+The shared Agent Skills tree can also run in compatible agent runtimes. Claude Code, Pi, GitHub Copilot, Prime Agent, OpenCode, and Gemini CLI instructions remain available, but I have performed live release verification only on Codex. This is an independent community project. It is not affiliated with or endorsed by OpenAI, Cursor, Michael Denyer, or Lauren Tan.
+
+## What comes from where
+
+| Source | Contribution |
+| --- | --- |
+| Lauren Tan's `pstack` | Original pstack skills, principles, and workflows |
+| Michael Denyer's `pstack-claude` | Cross-runtime adaptation, including the original Codex plugin implementation |
+| This repository | `pstack-codex` marketplace identity, Codex-focused documentation, release verification, and future changes drawn from daily Codex use |
 
 Tell `poteto-mode` your goal and it will invoke the correct workflow for the task. It keeps your code concise, simple and verified.
 

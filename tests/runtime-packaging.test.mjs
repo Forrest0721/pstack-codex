@@ -10,6 +10,7 @@ const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const distribution = {
   marketplace: "pstack-codex",
   repository: "https://github.com/Forrest0721/pstack-codex",
+  upstreamAuthor: { name: "Michael Denyer", url: "https://github.com/michael-denyer" },
   maintainer: { name: "Forrest0721", url: "https://github.com/Forrest0721" },
 };
 
@@ -62,7 +63,7 @@ describe("manifests", () => {
       ({ name, author, homepage, repository, license, keywords });
     expect(Object.values(shared(claude))).not.toContain(undefined);
     expect(shared(codex)).toEqual(shared(claude));
-    expect(claudeMarketplace.owner).toEqual(claude.author);
+    expect(claudeMarketplace.owner).toEqual(distribution.maintainer);
     expect(claudeMarketplace.plugins.map(({ name, source }) => [name, source])).toEqual([[claude.name, "./plugins/pstack"]]);
     expect(shared(piPackage)).toEqual({ ...shared(claude), keywords: ["pi-package", ...claude.keywords] });
     expect(piPackage.version).toBe(claude.version);
@@ -78,9 +79,12 @@ describe("manifests", () => {
   test("the published distribution uses the pstack-codex identity", () => {
     expect(codexMarketplace.name).toBe(distribution.marketplace);
     expect(claudeMarketplace.name).toBe(distribution.marketplace);
-    expect(codex.author).toEqual(distribution.maintainer);
+    expect(codex.author).toEqual(distribution.upstreamAuthor);
     expect(codex.repository).toBe(distribution.repository);
     expect(codex.homepage).toBe(distribution.repository);
+    expect(codex.description).toContain("Michael Denyer's pstack-claude");
+    expect(codex.interface.developerName).toContain("maintained for Codex by Forrest0721");
+    expect(claudeMarketplace.description).toContain("Michael Denyer's pstack-claude");
   });
 });
 

@@ -60,4 +60,4 @@ Port-authored files covered by this notice include:
 
 ## Changes in pstack-codex
 
-This fork uses `pstack-codex` as the marketplace and repository identity. It keeps the shared skills tree and the inherited runtime adapters, but its release claims are limited to live Codex verification. Package metadata, active documentation, support links, and distribution tests point to `Forrest0721/pstack-codex`.
+Forrest0721 uses Codex in daily work and renamed the marketplace identity from `pstack@pstack-claude` to `pstack@pstack-codex` for this downstream distribution. The core workflows and original Codex plugin implementation come from Michael Denyer's `pstack-claude`. Current changes in this fork mainly concern packaging, documentation, and Codex release verification. Other runtime adapters remain available, but this maintainer has performed live release verification only on Codex. Future changes will draw on the maintainer's Codex work and credit their sources. This is an independent community project, not endorsed by OpenAI, Cursor, Michael Denyer, or Lauren Tan.

@@ -1,17 +1,17 @@
 # Contributing
 
-Thanks for helping out. This repo is a **port**, not an original work: the `skills/` tree tracks [upstream pstack](https://github.com/cursor/plugins/tree/main/pstack) and gets synced forward periodically. That one fact shapes most of what follows.
+Thanks for helping out. This repository is an unofficial downstream distribution of Michael Denyer's [pstack-claude](https://github.com/michael-denyer/pstack-claude), which adapts [Lauren Tan's pstack](https://github.com/cursor/plugins/tree/main/pstack). The inherited `skills/` tree tracks Lauren Tan's upstream work and gets synced forward periodically.
 
 [CONTEXT.md](CONTEXT.md) is the glossary for the terms below.
 
 ## The sync boundary
 
-Upstream owns skill content. This port owns the Cursor-to-Claude-Code translation. It also carries named forks, each declared in [`tools/forks.json`](tools/forks.json) as a `port-feature` (Claude Code, Codex, Pi, or GitHub Copilot mechanics upstream cannot carry) or a `policy` (a workflow change the port chose to keep).
+Lauren Tan's pstack owns the original skill content. Michael Denyer's `pstack-claude` supplies the Cursor-to-Claude-Code translation, the core workflows, and the original Codex plugin implementation. This repository inherits that work and carries named forks, each declared in [`tools/forks.json`](tools/forks.json) as a `port-feature` (runtime mechanics upstream cannot carry) or a `policy` (a workflow change this distribution keeps).
 
-Both kinds of `SKILL.md` change land here. Upstream rarely merges pull requests from outside its own team, so this port does not ask you to land a change there first. Before changing a `SKILL.md`, work out which kind yours is:
+Both kinds of `SKILL.md` change land here. Lauren Tan's upstream rarely merges pull requests from outside its own team, so this distribution does not ask you to land a change there first. Before changing a `SKILL.md`, work out which kind yours is:
 
-- **Fixing the port.** A Cursor primitive that resolves wrong on Claude Code, a broken cross-reference, a stale model slug. Open a PR.
-- **Changing what a skill does.** New steps, a different workflow, reworded guidance. Open a PR here too. The port keeps the change as a `policy` fork, and every later sync merges it three ways against upstream's new text. Keep the edit small and in one place, because a wide rewrite conflicts each time upstream touches the same lines, and someone has to settle the change again under time pressure.
+- **Fixing a runtime adaptation.** A Cursor primitive that resolves wrong on Claude Code or Codex, a broken cross-reference, or a stale model slug. Open a PR.
+- **Changing what a skill does.** New steps, a different workflow, or reworded guidance. Open a PR here too. This distribution keeps the change as a `policy` fork, and every later sync merges it three ways against upstream's new text. Keep the edit small and in one place, because a wide rewrite conflicts each time upstream touches the same lines, and someone has to settle the change again under time pressure.
 
 Declare each file your change forks in `tools/forks.json` in the same PR, so the next sync knows it is deliberate and not drift. Set the entry's `upstream` field to `not-proposed`, or to the URL of an upstream PR or issue if you opened one.
 

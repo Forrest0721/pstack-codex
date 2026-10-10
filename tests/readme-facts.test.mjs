@@ -55,4 +55,13 @@ describe("README and reference facts match the tree", () => {
     expect(readme).not.toContain("codex plugin add pstack@pstack-claude");
     expect(reference).toContain("This fork performs live release verification only on Codex.");
   });
+
+  test("states the complete source chain and the fork's current scope", () => {
+    expect(readme).toContain("Michael Denyer's [pstack-claude](https://github.com/michael-denyer/pstack-claude)");
+    expect(readme).toContain("Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack)");
+    expect(readme).toContain("core workflows and original Codex plugin implementation come from `pstack-claude`");
+    expect(readme).toContain("independent community project");
+    expect(readme).toContain("not affiliated with or endorsed by OpenAI, Cursor, Michael Denyer, or Lauren Tan");
+    expect(readme).not.toContain("Codex-verified distribution");
+  });
 });

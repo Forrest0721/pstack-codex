@@ -1,6 +1,8 @@
 # pstack
 
-Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) is an opinionated skill stack that improves agent outcomes. This is the port for Claude Code, Codex, and other agent harnesses: the same skills, with Cursor primitives translated to each runtime's tools.
+This plugin comes from Michael Denyer's [pstack-claude](https://github.com/michael-denyer/pstack-claude), which adapts Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) for Claude Code, Codex, and other agent runtimes. `pstack-codex` is an unofficial downstream distribution for a maintainer who uses Codex daily. The core workflows and original Codex plugin implementation are inherited from `pstack-claude`. This fork mainly changes packaging, documentation, and Codex release verification.
+
+The other runtime adapters remain available. This maintainer has performed live release verification only on Codex. This is an independent community project, not endorsed by OpenAI, Cursor, Michael Denyer, or Lauren Tan.
 
 Tell `poteto-mode` your goal and it invokes the workflow that fits: reproduce and root-cause a bug, sketch a design with `architect`, race candidates in `arena`, review a diff with `interrogate`, cut prose with `unslop`. It keeps code concise, simple, and verified, and it reports what it checked.
 

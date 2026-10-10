@@ -1,11 +1,11 @@
 {
   "name": "pstack",
   "private": true,
-  "version": "0.9.82",
-  "description": "Portable pstack workflows maintained and verified on Codex. The shared skills tree also includes adapters for other agent runtimes.",
+  "version": "0.9.83",
+  "description": "Unofficial Codex-focused distribution of Michael Denyer's pstack-claude, based on Lauren Tan's pstack. Maintainer-tested on Codex.",
   "author": {
-    "name": "Forrest0721",
-    "url": "https://github.com/Forrest0721"
+    "name": "Michael Denyer",
+    "url": "https://github.com/michael-denyer"
   },
   "homepage": "https://github.com/Forrest0721/pstack-codex",
   "repository": "https://github.com/Forrest0721/pstack-codex",

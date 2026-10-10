@@ -2,11 +2,17 @@
 
 This file is the release changelog, with one `## <version> - <title>` entry per release, newest first. The Cursor-to-Claude rewrite rules live in [`tools/substitutions.json`](tools/substitutions.json), and the [sync boundary](CONTRIBUTING.md#the-sync-boundary) in `CONTRIBUTING.md` defines how a change to upstream's skill content is declared.
 
+## 0.9.83 - clarify downstream attribution
+
+The README, plugin README, contribution guide, reference, notice, and package metadata now identify `pstack-codex` as an unofficial downstream distribution of Michael Denyer's `pstack-claude`, itself an adaptation of Lauren Tan's pstack. They distinguish inherited workflows and Codex plugin code from this fork's packaging, documentation, and Codex release verification work. They also explain the marketplace rename and limit live verification claims to Codex.
+
 ## 0.9.82 - publish the pstack-codex distribution
 
 The repository now publishes the marketplace identity `pstack@pstack-codex`. Package metadata and active documentation point to `Forrest0721/pstack-codex`, while the license and notices preserve Lauren Tan's and Michael Denyer's authorship.
 
 The shared skills and inherited runtime adapters remain available to compatible agent harnesses. This fork makes a narrower support claim. Its release process performs live installation and workflow checks on Codex only. Other runtimes are available for testing and contributions, but this release does not claim that they were live-verified.
+
+The entries for 0.9.81 and earlier record release history inherited from [pstack-claude](https://github.com/michael-denyer/pstack-claude). They describe upstream work, not changes first made in `pstack-codex`.
 
 ## 0.9.81 - inspect terminal PRs and recover orphaned Pi agents
 

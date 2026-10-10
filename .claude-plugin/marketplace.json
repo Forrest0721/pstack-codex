@@ -4,13 +4,13 @@
     "name": "Forrest0721",
     "url": "https://github.com/Forrest0721"
   },
-  "description": "Portable pstack workflows maintained and verified on Codex. Other agent adapters are included but are not live-verified by this fork.",
+  "description": "Unofficial Codex-focused distribution of Michael Denyer's pstack-claude, based on Lauren Tan's pstack. Maintainer-tested on Codex.",
   "plugins": [
     {
       "name": "pstack",
       "source": "./plugins/pstack",
-      "description": "If you want to go fast, go deep first. pstack helps you write less, but higher quality code. rigorous agent workflows you can parallelize with confidence. Original pstack by Lauren Tan (poteto).",
-      "version": "0.9.82"
+      "description": "Michael Denyer's pstack-claude, based on Lauren Tan's pstack, packaged here as an unofficial Codex-focused distribution maintained by Forrest0721.",
+      "version": "0.9.83"
     }
   ]
 }
