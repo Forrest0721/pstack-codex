@@ -1,16 +1,16 @@
 {
-  "name": "pstack-claude",
+  "name": "pstack-codex",
   "owner": {
-    "name": "Michael Denyer",
-    "url": "https://github.com/michael-denyer"
+    "name": "Forrest0721",
+    "url": "https://github.com/Forrest0721"
   },
-  "description": "Claude Code port of poteto's pstack. Rigorous agent workflows with Cursor primitives translated to Claude Code equivalents.",
+  "description": "Portable pstack workflows maintained and verified on Codex. Other agent adapters are included but are not live-verified by this fork.",
   "plugins": [
     {
       "name": "pstack",
       "source": "./plugins/pstack",
       "description": "If you want to go fast, go deep first. pstack helps you write less, but higher quality code. rigorous agent workflows you can parallelize with confidence. Original pstack by Lauren Tan (poteto).",
-      "version": "0.9.81"
+      "version": "0.9.82"
     }
   ]
 }

@@ -49,17 +49,19 @@ Find each skill's instructions in the [skills tree](../plugins/pstack/skills/).
 
 All runtimes share [one skills tree](../plugins/pstack/skills/). A skills-only installation includes the skills, scripts, agent references, and license notices. The Claude Code, Codex, and GitHub Copilot plugins also install automatic routing hooks, and the Pi package adds an extension that injects the same routing and supplies the subagent tools. Codex command shortcuts are separate.
 
-| Runtime | Setup and recorded verification |
-| --- | --- |
-| Claude Code | Install the marketplace plugin. Skills use Claude tool names and model defaults; the plugin installs automatic routing. |
-| Codex | Install the native plugin through the repository's marketplace and trust its hook through `/hooks`. The [Codex mapping](../plugins/pstack/skills/poteto-mode/references/codex-tools.md) translates Claude tools and model names. Shared skill symlinks were also detected in a live session. |
-| Pi | Install the repository as a Pi package with `pi install`. The [Pi extension](../plugins/pstack/pi/index.ts) registers the subagent, question, and wake-up tools and `/loop`, and the [Pi mapping](../plugins/pstack/skills/poteto-mode/references/pi-tools.md) translates Claude tools and model names. The [equivalence table](pi-equivalence.md) records each Claude Code mechanism and how it was verified on Pi 1.0. |
-| GitHub Copilot | Install the plugin through the repository's marketplace; the CLI and the GitHub Copilot app share it. The [Copilot mapping](../plugins/pstack/skills/poteto-mode/references/copilot-tools.md) translates Claude tools, paths, and model roles, and maps app-only tools to CLI fallbacks. Install, routing, agent dispatch, and first-run setup are smoke-tested on the CLI; see [GitHub Copilot](#github-copilot). |
-| Prime Agent | Its documentation describes shared-directory discovery; it has not been tested in a live session. Choose tools and models through Prime's configuration. |
-| opencode | Discovery and reading a linked skill were verified on version 1.18.25. Configure agents, commands, and permissions in `opencode.json`. Its picker also lists principle skills. |
-| Gemini CLI | Its documentation describes shared-directory discovery; it has not been tested in a live session. Use `/skills list` to check discovery and `/skills reload` after changes. |
+This fork performs live release verification only on Codex. The other adapters and their automated tests are inherited from [`pstack-claude`](https://github.com/michael-denyer/pstack-claude). They remain available, but their presence is not a live compatibility claim from this fork.
 
-These checks cover skill discovery. Delegation and multi-model workflows remain unverified on Prime Agent, opencode, and Gemini CLI. On those runtimes, agents must adapt Claude-specific tools, models, and configuration. Each mapping applies only to its runtime.
+| Runtime | Setup and verification in this fork |
+| --- | --- |
+| Claude Code | The native marketplace files and Claude tool mapping are included. This fork has not live-verified them. |
+| Codex | Install `pstack@pstack-codex`, trust its hook through `/hooks`, and use the [Codex mapping](../plugins/pstack/skills/poteto-mode/references/codex-tools.md). The release process tests a clean install and a real skill invocation. |
+| Pi | The Pi package, extension, mapping, and inherited automated tests are included. This fork has not run the live Pi checks. |
+| GitHub Copilot | The native marketplace files, mapping, and inherited automated tests are included. This fork has not run a live Copilot check. |
+| Prime Agent | Use the shared skills installation. This fork has not live-verified Prime Agent. |
+| OpenCode | Use the shared skills installation and configure agents, commands, and permissions in `opencode.json`. This fork has not live-verified OpenCode. |
+| Gemini CLI | Use the shared skills installation. This fork has not live-verified Gemini CLI. |
+
+On runtimes other than Codex, the agent must adapt tool names, models, and configuration where no runtime mapping exists. Each included mapping applies only to its named runtime.
 
 ### Automatic routing
 
@@ -80,8 +82,8 @@ Skills-only installs and other runtimes do not include the hook or the Pi extens
 Use this path for Prime Agent, opencode, Gemini CLI, or a skills-only Codex installation. Clone the repository and link its skills into `~/.agents/skills/`:
 
 ```shell
-git clone https://github.com/michael-denyer/pstack-claude
-cd pstack-claude
+git clone https://github.com/Forrest0721/pstack-codex
+cd pstack-codex
 mkdir -p ~/.agents/skills
 for s in plugins/pstack/skills/*/; do
   target=~/.agents/skills/"$(basename "$s")"
@@ -102,16 +104,16 @@ To update, pull changes in the clone that the links point to. To uninstall a lin
 To install without keeping a local clone:
 
 ```shell
-npx skills add https://github.com/michael-denyer/pstack-claude/tree/main/plugins/pstack/skills --skill "*" --agent "*" --yes
+npx skills add https://github.com/Forrest0721/pstack-codex/tree/main/plugins/pstack/skills --skill "*" --agent "*" --yes
 ```
 
 The [CI installation check](../.github/workflows/ci.yml) uses the skills CLI to copy the checkout's skill tree and compare the installed files with their sources.
 
 ### Codex
 
-The [native plugin manifest](../plugins/pstack/.codex-plugin/plugin.json) points to the shared skills directory and the Codex [SessionStart hook](../plugins/pstack/hooks/codex-hooks.json). The [marketplace catalog](../.agents/plugins/marketplace.json) lists `pstack` in the `pstack-claude` marketplace. Review and trust the hook through `/hooks`; Codex asks again when its definition changes.
+The [native plugin manifest](../plugins/pstack/.codex-plugin/plugin.json) points to the shared skills directory and the Codex [SessionStart hook](../plugins/pstack/hooks/codex-hooks.json). The [marketplace catalog](../.agents/plugins/marketplace.json) lists `pstack` in the `pstack-codex` marketplace. Review and trust the hook through `/hooks`; Codex asks again when its definition changes.
 
-The [README installation](../README.md#codex) registers that catalog with `codex plugin marketplace add`, then installs the plugin with `codex plugin add`. These commands match the help output from `codex-cli 0.154.0-alpha.6.2`. A fresh native installation was not tested for this documentation change.
+The [README installation](../README.md#codex) registers that catalog with `codex plugin marketplace add`, then installs the plugin with `codex plugin add`. The release check installs the local checkout, confirms that Codex reports `pstack@pstack-codex`, and invokes a pstack skill in a fresh Codex run.
 
 OpenAI documents [marketplace registration and the plugin format](https://developers.openai.com/plugins/build/plugins#add-a-marketplace-from-the-cli). If your CLI lacks `plugin add`, use the plugin browser after registering the marketplace, or use the [skills-only installation](#shared-skills-installation).
 
@@ -138,7 +140,7 @@ Each shortcut invokes its skill. The commands skip existing files and links. Rem
 
 ### Pi
 
-The repository root is a [Pi package](https://pi.dev/packages): its [`package.json`](../package.json) lists the shared skills directory and the [pstack Pi extension](../plugins/pstack/pi/index.ts). Install it with `pi install git:github.com/michael-denyer/pstack-claude`, or `pi install <clone path>` for a local checkout.
+The repository root is a [Pi package](https://pi.dev/packages): its [`package.json`](../package.json) lists the shared skills directory and the [pstack Pi extension](../plugins/pstack/pi/index.ts). Install it with `pi install git:github.com/Forrest0721/pstack-codex`, or `pi install <clone path>` for a local checkout. This fork has not run the live Pi checks.
 
 The extension supplies what Pi lacks natively, under the Claude Code names the skills use:
 
@@ -147,11 +149,11 @@ The extension supplies what Pi lacks natively, under the Claude Code names the s
 - `ask_user_question` and `schedule_wakeup` match `AskUserQuestion` and `ScheduleWakeup`, and `/loop` matches the `loop` skill. In a child agent, asking a question and scheduling a wakeup both return an error.
 - At every agent start it adds the routing instruction, the override sheet `~/.pi/agent/pstack-models.md`, and a pointer to the Pi mapping to the system prompt.
 
-Family names such as `opus` resolve through the `pi` block of [`models.json`](../plugins/pstack/models.json) to model IDs for the provider the Pi session runs on. A ChatGPT sign-in (`openai`, or the legacy `openai-codex`) gets OpenAI models, and Anthropic or any other provider gets Claude models. Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription, and every subagent pstack starts adds to that bill. Run pstack in Claude Code to stay within a Claude plan's limits. A `pi models:` line in the sheet remaps any family name. The [Pi mapping](../plugins/pstack/skills/poteto-mode/references/pi-tools.md) lists every translation, and the [equivalence table](pi-equivalence.md) records what was verified and how.
+Family names such as `opus` resolve through the `pi` block of [`models.json`](../plugins/pstack/models.json) to model IDs for the provider the Pi session runs on. A ChatGPT sign-in (`openai`, or the legacy `openai-codex`) gets OpenAI models, and Anthropic or any other provider gets Claude models. Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription, and every subagent pstack starts adds to that bill. Run pstack in Claude Code to stay within a Claude plan's limits. A `pi models:` line in the sheet remaps any family name. The [Pi mapping](../plugins/pstack/skills/poteto-mode/references/pi-tools.md) lists every translation. The inherited [equivalence table](pi-equivalence.md) records the checks performed by `pstack-claude`; this fork has not rerun the live Pi checks.
 
 ### GitHub Copilot
 
-The Copilot CLI reads the Claude Code [marketplace](../.claude-plugin/marketplace.json). For the plugin it looks for `.github/plugin/plugin.json` before `.claude-plugin/plugin.json`, so pstack ships a [Copilot manifest](../plugins/pstack/.github/plugin/plugin.json) whose `hooks` field names [`hooks/copilot-hooks.json`](../plugins/pstack/hooks/copilot-hooks.json). Copilot then skips the Claude Code `hooks/hooks.json`, so each hook runs once, and Claude Code keeps reading its own manifest. The GitHub Copilot app loads plugins installed into `~/.copilot`; a manual app check of routing, first-run setup, agent dispatch, `session hook: off`, and the app-only tools passed on 2026-09-25. To try a local checkout, pass its absolute path to `copilot plugin marketplace add`. Skills load by bare name through the `skill` tool, and a user types `/pstack:<skill>` in the CLI prompt; the agents keep their prefix, `pstack:poteto-agent` and `pstack:comment-sicko`.
+The Copilot CLI reads the Claude Code [marketplace](../.claude-plugin/marketplace.json). For the plugin it looks for `.github/plugin/plugin.json` before `.claude-plugin/plugin.json`, so pstack ships a [Copilot manifest](../plugins/pstack/.github/plugin/plugin.json) whose `hooks` field names [`hooks/copilot-hooks.json`](../plugins/pstack/hooks/copilot-hooks.json). Copilot then skips the Claude Code `hooks/hooks.json`, so each hook runs once, and Claude Code keeps reading its own manifest. The GitHub Copilot app loads plugins installed into `~/.copilot`. The upstream `pstack-claude` project reported a manual app check on 2026-09-25; this fork has not rerun it. To try a local checkout, pass its absolute path to `copilot plugin marketplace add`. Skills load by bare name through the `skill` tool, and a user types `/pstack:<skill>` in the CLI prompt; the agents keep their prefix, `pstack:poteto-agent` and `pstack:comment-sicko`.
 
 Copilot's hook file runs the [SessionStart hook](../plugins/pstack/hooks/session-start.sh) with the `copilot` argument. It prints JSON `additionalContext`: the routing instruction plus a [Copilot addendum](../plugins/pstack/hooks/session-start-copilot.md). It reads the model sheet, which sits outside Copilot's path sandbox, and checks it with the [same POSIX `awk` validator](../plugins/pstack/skills/setup-pstack/scripts/sheet.awk) that `setup-pstack` runs through `check-sheet.sh` after it writes the sheet. A valid sheet adds one line per known role, rebuilt from the checked values, so no other sheet text reaches the context. An invalid sheet adds `sheet invalid:` with each problem, and a missing sheet adds a note; both tell the session to run `setup-pstack` first. A second hook, [`pre-tool-use.sh`](../plugins/pstack/hooks/pre-tool-use.sh) with the matcher `view|task|bash`, does three things on Copilot. It approves reads inside the plugin directory so playbooks and references load without a path-access prompt. It approves registered scripts with their declared argument contracts and matching interpreters, using a strict command form with no shell metacharacters. It checks path operands separately from prose fields; unknown scripts and argument forms take the normal permission flow. Setup, SessionStart, and PreToolUse share one sheet decoder, including UTF-16LE support. While the sheet is valid, it denies a `pstack:*` `task` call whose `model` is not one of the saved choices, with the saved IDs in the reason. It stays silent on everything else and always exits 0, because Copilot denies a tool call when the hook fails; an `awk` error still reaches stderr. Copilot runs plugin hooks on every session start, so the Claude matcher does not apply. The hook runs lazily, after the first message is submitted and before the first model turn, including when that message is a slash command such as `/pstack:arena`. A resumed session runs it again with source `resume`, and the model still sees one routing block. On CLI 1.0.87 through 1.0.92, the context of several plugins' session-start hooks merges ([github/copilot-cli#3589](https://github.com/github/copilot-cli/issues/3589) reported that only the last one survived). If a version drops the merge, use the standing instruction from `setup-pstack`. On 1.0.92, when the CLI's cached experiment assignment turns on computer use, `-p` sessions load no plugin skills while interactive sessions still do; the smoke test clears that cache before each `-p` probe.
 

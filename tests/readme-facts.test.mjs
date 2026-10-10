@@ -9,9 +9,9 @@ import { fileURLToPath } from "node:url";
 import { agentSkills, publicSkills } from "../tools/generate.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const documentation = ["README.md", "docs/reference.md"]
-  .map((file) => readFileSync(join(repoRoot, file), "utf8"))
-  .join("\n");
+const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
+const reference = readFileSync(join(repoRoot, "docs/reference.md"), "utf8");
+const documentation = [readme, reference].join("\n");
 const skillsDir = join(repoRoot, "plugins/pstack/skills");
 const total = agentSkills(skillsDir).length;
 const publicCount = publicSkills(skillsDir).length;
@@ -48,5 +48,11 @@ describe("README and reference facts match the tree", () => {
     const named = [...documentation.matchAll(/synced against upstream `([0-9a-f]+)`/g)].map((m) => m[1]);
     expect(named.length).toBeGreaterThan(0);
     for (const sha of named) expect(pins.pstack.sha.startsWith(sha)).toBe(true);
+  });
+
+  test("publishes the pstack-codex selector and limits live verification claims to Codex", () => {
+    expect(readme).toContain("codex plugin add pstack@pstack-codex");
+    expect(readme).not.toContain("codex plugin add pstack@pstack-claude");
+    expect(reference).toContain("This fork performs live release verification only on Codex.");
   });
 });

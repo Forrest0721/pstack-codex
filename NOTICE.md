@@ -1,6 +1,6 @@
 # NOTICE
 
-This plugin is a port of upstream MIT-licensed work. The port's modifications and additions are (c) 2026 Michael Denyer and are also released under the [MIT license](LICENSE). All upstream copyright notices and license terms are preserved.
+This repository is a fork of Michael Denyer's MIT-licensed [`pstack-claude`](https://github.com/michael-denyer/pstack-claude), which ports Lauren Tan's pstack and selected Cursor team-kit skills. Michael Denyer's modifications and additions are (c) 2026 Michael Denyer. Changes made for `pstack-codex` are (c) 2026 Forrest0721. All work remains under the [MIT license](LICENSE), and all upstream copyright notices and license terms are preserved.
 
 ## Upstream sources
 
@@ -22,7 +22,7 @@ This plugin is a port of upstream MIT-licensed work. The port's modifications an
 | `plugins/pstack/skills/correct/` (v0.15.9 addition) | [cursor/plugins/pstack @ e43c7ee](https://github.com/cursor/plugins/tree/e43c7ee/pstack) | (c) 2026 Lauren Tan | MIT | [LICENSE](LICENSE) |
 | `plugins/pstack/skills/poteto-help/` (v0.15.13 addition) | [cursor/plugins/pstack @ 2cbf585](https://github.com/cursor/plugins/tree/2cbf585/pstack) | (c) 2026 Lauren Tan | MIT | [LICENSE](LICENSE) |
 
-## What changed in the port
+## What changed in pstack-claude
 
 The port is editorial, not mechanical. [CHANGES.md](CHANGES.md) records each release's changes, and [`tools/substitutions.json`](tools/substitutions.json) lists the token rewrites with the reason for each.
 
@@ -37,7 +37,7 @@ Summary of structural changes:
 - `plugins/pstack/agents/comment-sicko.md` is upstream's `Comment Sicko` agent, renamed to `comment-sicko` so the name works as a Claude Code `subagent_type`. The body is verbatim.
 - A Codex build shares the same `skills/` tree. It adds `plugins/pstack/.codex-plugin/plugin.json`, a root `.agents/plugins/marketplace.json`, and `plugins/pstack/skills/poteto-mode/references/codex-tools.md` (the Claude-to-Codex tool, model, built-in, and per-skill map). Affected skill entry points link to this map so direct invocation works without the optional Codex prompt stubs. See the [reference](docs/reference.md#codex).
 
-## Modifications
+## Modifications inherited from pstack-claude
 
 Per the MIT license, modifications are permitted. Skill bodies have been edited to substitute Cursor-specific primitives with their Claude Code equivalents (the substitution rules are in [`tools/substitutions.json`](tools/substitutions.json)). All upstream copyright notices in source files (where present) are preserved.
 
@@ -57,3 +57,7 @@ Port-authored files covered by this notice include:
 - `CHANGES.md`
 
 `LICENSE-cursor-team-kit` is copied verbatim from upstream cursor-team-kit rather than authored for this port.
+
+## Changes in pstack-codex
+
+This fork uses `pstack-codex` as the marketplace and repository identity. It keeps the shared skills tree and the inherited runtime adapters, but its release claims are limited to live Codex verification. Package metadata, active documentation, support links, and distribution tests point to `Forrest0721/pstack-codex`.

@@ -60,7 +60,7 @@ When adding a skill, include `name` and `description` in its frontmatter. Public
 
 Change model defaults in `models.json`, never in a skill body. A role names a tier from `tiers` (`default`, `strongest`, or `panel`), so moving a tier is one edit, the `codex` block gives the Codex example for each tier, and the `pi` block maps each available family name to a Pi model ID once per Pi provider, with a `fallback` provider for sessions on any other. The generator checks the configuration's structure as it loads it (`parseModels` in `tools/generate.mjs`) and fails naming the offending role, tier, or slug. `tests/models.test.mjs` proves each malformed shape is rejected and checks that skills name every role they use. A full `claude-*` ID or a backticked available name such as `` `fable` `` outside a generated region fails the generator with its file and line.
 
-`bun test tests/` covers the generator, the sync tool, the link validator, and `tests/invariants.test.mjs`, which builds fixture trees that must trip each layout invariant. One check is behavioral and lives in `tests/skill-collision-repro.sh`: it needs the `claude` CLI and API access and makes one haiku call to prove a user-typed `/plugin:name` reaches a skill with no `commands/` present. CI cannot run it, so run it locally at least once before a release.
+`bun test tests/` covers the generator, the sync tool, the link validator, and `tests/invariants.test.mjs`, which builds fixture trees that must trip each layout invariant. The inherited Claude behavioral check lives in `tests/skill-collision-repro.sh`: it needs the `claude` CLI and API access and makes one haiku call to prove a user-typed `/plugin:name` reaches a skill with no `commands/` present. CI cannot run it. Run it before claiming live Claude support or releasing a change to the Claude adapter; it is not part of this fork's Codex-only live release claim.
 
 If you touched `plugins/pstack/pi/` or `pi-tools.md`, run the Pi checks against a signed-in `pi` 1.0 as well. `bun tools/typecheck-pi.mjs` typechecks the extension under strict against the installed Pi package's own types; it uses `PI_PACKAGE_DIR` when set and otherwise looks under the global npm root, then bun's global directory (`BUN_INSTALL_GLOBAL_DIR`, then `$BUN_INSTALL/install/global`, then `$XDG_CACHE_HOME/.bun/install/global`, then `~/.bun/install/global` and `~/.cache/.bun/install/global`), as `tests/pi/catalog.test.mjs` and `tests/pi/runtime.test.mjs` do through `tools/pi-package.mjs`. CI's `Pi extension types` job installs the pinned release in the global npm root. `PSTACK_PI_LIVE=1 bun test tests/pi/live.test.mjs` drives the extension through real `pi` processes in about five minutes. It makes real model calls, on the shipped `openai` models by default. Set `PSTACK_PI_LIVE_PROVIDER=anthropic` to call the Claude models instead, or set `PSTACK_PI_LIVE_MODELS` to a `pi models:` line to replace individual models.
 
@@ -114,7 +114,17 @@ Dependabot keeps the pinned action SHAs current. The vendored scripts' one runti
 
 Plugin auto-update installs **by version number**, not by tracking `main`. A skill fix merged without a version bump is inert on every installed copy, because the updater sees the same version it already has and does nothing.
 
-So: any PR that changes skill behavior either bumps the version itself or is followed by a release PR that does. The bump is three steps: edit the root `VERSION` file, add a `CHANGES.md` entry under a `## <version>` heading describing what changed and why, and run `bun tools/generate.mjs` to stamp the manifests. Forgetting any of the three fails CI. Run the full invariant script (including the behavioral leg) before merging.
+So: any PR that changes skill behavior either bumps the version itself or is followed by a release PR that does. The bump is three steps: edit the root `VERSION` file, add a `CHANGES.md` entry under a `## <version>` heading describing what changed and why, and run `bun tools/generate.mjs` to stamp the manifests. Forgetting any of the three fails CI. Run the full automated suite and the live check for every runtime whose support the release claims before merging.
+
+For a `pstack-codex` release, install the checkout through the Codex marketplace and run the live Codex smoke test:
+
+```shell
+codex plugin marketplace add "$(pwd)"
+codex plugin add pstack@pstack-codex
+PSTACK_CODEX_LIVE=1 tests/codex-smoke.sh
+```
+
+The smoke test checks the installed selector and version, reads the real SessionStart hook output, and makes a fresh ephemeral Codex turn load and invoke `pstack:bro`. Other runtime adapters are not part of this fork's live release claim.
 
 ## Commit and PR style
 
@@ -124,4 +134,4 @@ So: any PR that changes skill behavior either bumps the version itself or is fol
 
 ## Reporting bugs
 
-Include the pstack version, the Claude Code (or Codex, Pi, or GitHub Copilot) version, and the reproduction steps. [#22](https://github.com/michael-denyer/pstack-claude/issues/22) is the model to copy: it named versions, gave numbered steps, and included the experiment that isolated the cause.
+Include the pstack version, the agent runtime and version, and the reproduction steps. The original port's [issue #22](https://github.com/michael-denyer/pstack-claude/issues/22) is a useful example because it names versions, gives numbered steps, and includes the experiment that isolated the cause.

@@ -7,6 +7,11 @@ import { validateHooks } from "../tools/generate.mjs";
 import { validateCodexMarketplace, validateCopilotManifest, validatePiPackage } from "../tools/runtimes.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
+const distribution = {
+  marketplace: "pstack-codex",
+  repository: "https://github.com/Forrest0721/pstack-codex",
+  maintainer: { name: "Forrest0721", url: "https://github.com/Forrest0721" },
+};
 
 describe("validateCodexMarketplace", () => {
   const manifest = (plugins) => JSON.stringify({ plugins });
@@ -68,6 +73,14 @@ describe("manifests", () => {
     expect(codexMarketplace.plugins.map(({ name, source, category }) => [name, source.path, category])).toEqual([
       [codex.name, claudeMarketplace.plugins[0].source, codex.interface.category],
     ]);
+  });
+
+  test("the published distribution uses the pstack-codex identity", () => {
+    expect(codexMarketplace.name).toBe(distribution.marketplace);
+    expect(claudeMarketplace.name).toBe(distribution.marketplace);
+    expect(codex.author).toEqual(distribution.maintainer);
+    expect(codex.repository).toBe(distribution.repository);
+    expect(codex.homepage).toBe(distribution.repository);
   });
 });
 
