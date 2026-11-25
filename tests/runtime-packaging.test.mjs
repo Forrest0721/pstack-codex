@@ -1,10 +1,10 @@
 // Runtime packaging contracts: manifests and hook commands.
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateHooks } from "../tools/generate.mjs";
-import { validateCodexMarketplace, validateCopilotManifest, validatePiPackage } from "../tools/runtimes.mjs";
+import { AGY_HOOKS, MUSE_HOOKS, validateAgyManifest, validateCodexMarketplace, validateCopilotManifest, validateMuseManifest, validatePiPackage } from "../tools/runtimes.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const distribution = {
@@ -49,6 +49,70 @@ describe("validateCopilotManifest", () => {
   });
 });
 
+describe("validateAgyManifest", () => {
+  const manifest = { name: "pstack", logo: "assets/pstack-icon.png" };
+  const options = {
+    claude: { name: "pstack" },
+    read: () => JSON.stringify(AGY_HOOKS),
+    statOf: (rel) => [manifest.logo, "hooks/session-start.sh"].includes(rel) ? { mode: 0o755, isFile: () => true } : null,
+  };
+
+  test("checks the native manifest and its routing command", () => {
+    expect(() => validateAgyManifest(manifest, options)).not.toThrow();
+    expect(() => validateAgyManifest({ ...manifest, name: "other" }, options)).toThrow("!= Claude Code manifest name");
+    expect(() => validateAgyManifest({ ...manifest, logo: "missing.png" }, options)).toThrow("missing.png is not a file");
+    expect(() => validateAgyManifest(manifest, { ...options, read: () => "{}" })).toThrow("pstack-routing.SessionStart");
+  });
+
+  test("requires the hook script on every host and execute bits on POSIX", () => {
+    const plain = { ...options, statOf: () => ({ mode: 0o644, isFile: () => true }) };
+    expect(() => validateAgyManifest(manifest, plain)).toThrow("hooks/session-start.sh is not executable");
+    expect(() => validateAgyManifest(manifest, { ...plain, checkExecutable: false })).not.toThrow();
+    const missing = { ...options, statOf: (rel) => rel === manifest.logo ? options.statOf(rel) : null };
+    expect(() => validateAgyManifest(manifest, { ...missing, checkExecutable: false })).toThrow("hooks/session-start.sh is not a file");
+  });
+});
+
+describe("validateMuseManifest", () => {
+  const claude = { name: "pstack" };
+  const ok = {
+    name: "pstack",
+    schemaVersion: 1,
+    compat: { source: "native", manifestDir: ".muse-plugin" },
+    capabilities: {
+      skills: [{ id: "poteto-mode", path: "skills/poteto-mode/SKILL.md", enabledDefault: true }],
+      commands: [],
+    },
+  };
+  const files = new Set(["skills/poteto-mode/SKILL.md", "models.json", ...MUSE_HOOKS.map(({ script }) => script)].map((rel) => `plugins/pstack/${rel}`));
+  const pathExists = (rel) => files.has(rel);
+  test("needs the Claude Code name, native compat, existing paths, and each hook script", () => {
+    expect(() => validateMuseManifest(ok, { claude, pathExists })).not.toThrow();
+    expect(() => validateMuseManifest({ ...ok, name: "other" }, { claude, pathExists })).toThrow(
+      'name "other" != Claude Code manifest name "pstack"',
+    );
+    expect(() => validateMuseManifest({ ...ok, schemaVersion: 2 }, { claude, pathExists })).toThrow("is not 1");
+    expect(() => validateMuseManifest({ ...ok, compat: { source: "claude", manifestDir: ".claude-plugin" } }, { claude, pathExists })).toThrow(
+      "native .muse-plugin manifest",
+    );
+    const badPath = structuredClone(ok);
+    badPath.capabilities.skills[0].path = "skills/nope/SKILL.md";
+    expect(() => validateMuseManifest(badPath, { claude, pathExists })).toThrow("is not a file in the plugin");
+    const noScript = (rel) => rel !== "plugins/pstack/hooks/session-start.ps1" && pathExists(rel);
+    expect(() => validateMuseManifest(ok, { claude, pathExists: noScript })).toThrow(
+      '"session-start-windows" runs hooks/session-start.ps1, which is not in the plugin',
+    );
+    const noModels = (rel) => rel !== "plugins/pstack/models.json" && pathExists(rel);
+    expect(() => validateMuseManifest(ok, { claude, pathExists: noModels })).toThrow("reads models.json, which is not in the plugin");
+  });
+
+  test("rejects a command whose id duplicates a skill id", () => {
+    const dup = structuredClone(ok);
+    dup.capabilities.commands = [{ id: "poteto-mode", path: "skills/poteto-mode/SKILL.md" }];
+    expect(() => validateMuseManifest(dup, { claude, pathExists })).toThrow("duplicates a skill id");
+  });
+});
+
 describe("manifests", () => {
   const json = (rel) => JSON.parse(readFileSync(join(repoRoot, rel), "utf8"));
   const claude = json("plugins/pstack/.claude-plugin/plugin.json");
@@ -57,6 +121,8 @@ describe("manifests", () => {
   const codexMarketplace = json(".agents/plugins/marketplace.json");
   const piPackage = json("package.json");
   const copilot = json("plugins/pstack/.github/plugin/plugin.json");
+  const muse = json("plugins/pstack/.muse-plugin/plugin.json");
+  const kimi = json("kimi.plugin.json");
 
   test("the plugin and marketplace manifests agree on every fact they repeat", () => {
     const shared = ({ name, author, homepage, repository, license, keywords }) =>
@@ -69,6 +135,10 @@ describe("manifests", () => {
     expect(piPackage.version).toBe(claude.version);
     expect({ ...shared(copilot), keywords: claude.keywords }).toEqual(shared(claude));
     expect(copilot.version).toBe(claude.version);
+    expect(muse.name).toBe(claude.name);
+    expect(muse.version).toBe(claude.version);
+    expect(kimi.name).toBe(claude.name);
+    expect(kimi.version).toBe(claude.version);
     expect(codexMarketplace.name).toBe(claudeMarketplace.name);
     expect(codexMarketplace.interface.displayName).toBe(codex.interface.displayName);
     expect(codexMarketplace.plugins.map(({ name, source, category }) => [name, source.path, category])).toEqual([
@@ -85,6 +155,61 @@ describe("manifests", () => {
     expect(codex.description).toContain("Michael Denyer's pstack-claude");
     expect(codex.interface.developerName).toContain("maintained for Codex by Forrest0721");
     expect(claudeMarketplace.description).toContain("Michael Denyer's pstack-claude");
+  });
+
+  test("the Kimi system prompt carries the routing instruction and the mapping pointer", () => {
+    const prompt = readFileSync(join(repoRoot, kimi.systemPromptPath), "utf8");
+    expect(prompt).toContain("pstack:poteto-mode");
+    expect(prompt).toContain(readFileSync(join(repoRoot, "plugins/pstack/hooks/session-start-context.md"), "utf8").trim());
+    expect(prompt).toContain("kimi-tools.md");
+  });
+
+  test("every Build's copy of the routing mandate keeps the base mandate's criteria and routing paragraph", () => {
+    const hooks = join(repoRoot, "plugins/pstack/hooks");
+    const base = "session-start-context.md";
+    const lines = readFileSync(join(hooks, base), "utf8").split("\n");
+    const shared = lines.slice(lines.findIndex((l) => l.startsWith("- ")), lines.findIndex((l) => l.startsWith("It routes")) + 1).join("\n");
+    const copies = readdirSync(hooks).filter(
+      (file) => file !== base && file.endsWith(".md") && readFileSync(join(hooks, file), "utf8").includes("when a task meets any of these:"),
+    );
+    expect(shared.split("\n").length).toBeGreaterThan(3);
+    expect(copies.length).toBeGreaterThanOrEqual(5);
+    for (const copy of copies) expect({ copy, shared: readFileSync(join(hooks, copy), "utf8").includes(shared) }).toEqual({ copy, shared: true });
+  });
+
+  test("Kimi instructions locate the packaged mapping", () => {
+    const prompt = readFileSync(join(repoRoot, kimi.systemPromptPath), "utf8");
+    for (const instructions of [kimi.skillInstructions, prompt]) {
+      const path = instructions.match(/<KIMI_CODE_HOME>\/plugins\/managed\/pstack\/([^`\s]+kimi-tools\.md)/)?.[1];
+      expect(path).toBeDefined();
+      expect(existsSync(join(repoRoot, path))).toBe(true);
+    }
+  });
+});
+
+// #265: Codex takes a root plugin.json whose $schema is an Agent Plugins one
+// ahead of .codex-plugin/plugin.json, and loads no plugin hooks for that
+// format (codex-rs plugin_namespace.rs find_plugin_manifest_path and
+// loader.rs at rust-v0.162.1). This mirrors that lookup and returns the hook
+// events Codex would register.
+function codexHookEvents(read) {
+  const root = read("plugin.json");
+  if (root !== null && JSON.parse(root).$schema?.startsWith("https://agent-plugins.org/schemas/")) return [];
+  const { hooks } = JSON.parse(read(".codex-plugin/plugin.json"));
+  return Object.keys(JSON.parse(read(hooks)).hooks);
+}
+
+describe("Codex hook discovery", () => {
+  const pluginRoot = join(repoRoot, "plugins/pstack");
+  const shipped = (rel) => (existsSync(join(pluginRoot, rel)) ? readFileSync(join(pluginRoot, rel), "utf8") : null);
+
+  test("Codex registers the shipped SessionStart hook", () => {
+    expect(codexHookEvents(shipped)).toContain("SessionStart");
+  });
+
+  test("an Agent Plugins manifest at the plugin root hides the hooks", () => {
+    const manifest = JSON.stringify({ $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json", name: "pstack" });
+    expect(codexHookEvents((rel) => (rel === "plugin.json" ? manifest : shipped(rel)))).toEqual([]);
   });
 });
 
@@ -126,8 +251,8 @@ describe("validatePiPackage", () => {
 });
 
 describe("validateHooks", () => {
-  const hooks = (command, commandWindows) =>
-    JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: "command", command, commandWindows }] }] } });
+  const hooks = (command, commandWindows, powershell) =>
+    JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: "command", command, commandWindows, powershell }] }] } });
   const exec = { mode: 0o755 };
   const plain = { mode: 0o644 };
 
@@ -165,6 +290,14 @@ describe("validateHooks", () => {
     );
   });
 
+  test("a host without POSIX execute bits still checks every hook path", () => {
+    const cmd = hooks('"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"');
+    expect(() => validateHooks(cmd, { statOf: () => plain, checkExecutable: false })).not.toThrow();
+    expect(() => validateHooks(cmd, { statOf: () => null, checkExecutable: false })).toThrow(
+      "SessionStart: hooks/session-start.sh does not exist",
+    );
+  });
+
   test("checks the Windows override path without requiring an executable bit for PowerShell", () => {
     const cmd = hooks(
       '"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh" codex',
@@ -175,6 +308,32 @@ describe("validateHooks", () => {
     expect(() => validateHooks(cmd, { statOf: (rel) => rel.endsWith(".sh") ? exec : null })).toThrow(
       "SessionStart: hooks/session-start.ps1 does not exist",
     );
+  });
+
+  test("checks a Copilot PowerShell override under the runtime's own root variable", () => {
+    const root = "COPILOT_PLUGIN_ROOT";
+    const sh = '"${COPILOT_PLUGIN_ROOT}/hooks/session-start.sh" copilot';
+    const ps = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:COPILOT_PLUGIN_ROOT/hooks/session-start.ps1" copilot';
+    const statOf = (rel) => (rel.endsWith(".sh") ? exec : plain);
+    expect(() => validateHooks(hooks(sh, undefined, ps), { statOf, root })).not.toThrow();
+    expect(() => validateHooks(hooks(sh, undefined, ps), { statOf: (rel) => (rel.endsWith(".sh") ? exec : null), root })).toThrow(
+      "SessionStart: hooks/session-start.ps1 does not exist",
+    );
+    const otherRoot = 'powershell.exe -File "$env:CLAUDE_PLUGIN_ROOT/hooks/session-start.ps1"';
+    expect(() => validateHooks(hooks(sh, undefined, otherRoot), { statOf, root })).toThrow("does not reference ${COPILOT_PLUGIN_ROOT}");
+  });
+
+  test("accepts exit 0 as the only PowerShell override that names no plugin file", () => {
+    const root = "COPILOT_PLUGIN_ROOT";
+    const sh = '"${COPILOT_PLUGIN_ROOT}/hooks/pre-tool-use.sh"';
+    expect(() => validateHooks(hooks(sh, undefined, "exit 0"), { statOf: () => exec, root })).not.toThrow();
+    for (const ps of [
+      'powershell.exe -File "$env:COPILOT_PLUGN_ROOT/hooks/session-start.ps1" copilot',
+      'powershell.exe -File "${COPILOT_PLUGIN_ROOT}/hooks/missing.ps1" copilot',
+      "Write-Output allow",
+    ]) {
+      expect(() => validateHooks(hooks(sh, undefined, ps), { statOf: () => exec, root })).toThrow("does not reference ${COPILOT_PLUGIN_ROOT}");
+    }
   });
 
   test("names a hook without a command, even when it has a Windows override", () => {

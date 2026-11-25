@@ -1,21 +1,27 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-works/pi-coding-agent";
 import { type Static, Type } from "typebox";
 import { Value } from "typebox/value";
 
-import { noticeOf, OUTPUT_CAP_BYTES, truncateUtf8 } from "./agent-text.ts";
+import { noticeOf, OUTPUT_CAP_BYTES, statusText, truncateUtf8 } from "./agent-text.ts";
 import type { AgentParams } from "./agent-tools.ts";
-import { alive, type ChildExit, PiChild, terminateGroup } from "./child.ts";
-import { DEPTH_FLAG, GENERAL_PURPOSE, loadAgentTypes, PSTACK_STATE_DIR, readSheet, resolveModel, type Settings } from "./config.ts";
+import { type Activity, type AgentChild, alive, type ChildExit, PiChild, terminateGroup } from "./child.ts";
+import { HcChild } from "./hc-child.ts";
+import { loadAgentTypes } from "./agent-files.ts";
+import { checkEffort, DEPTH_FLAG, GENERAL_PURPOSE, InvalidValueError, PSTACK_STATE_DIR, readSheet, resolveModel, type Settings } from "./config.ts";
 import { ensureWorktree, planWorktree, settleWorktree, type Worktree, worktreeSchema } from "./worktree.ts";
 
 const ENTRY_TYPE = "pstack-agents";
+const STATUS_KEY = "pstack-agents";
 // Claude Code lets agents nest three layers below the main session and withholds
 // the Agent tool at the third.
 const MAX_SPAWN_DEPTH = 3;
+// Names the session a child's permission asks go to. @gotgenes/pi-permission-system
+// relays them there while that session has a UI; without it a child answers them itself.
+const PARENT_SESSION_ENV = "PI_SUBAGENT_PARENT_SESSION";
 
 const endedStatus = Type.Union([Type.Literal("completed"), Type.Literal("failed"), Type.Literal("stopped")]);
 type EndedStatus = Static<typeof endedStatus>;
@@ -48,6 +54,7 @@ const runningSchema = Type.Object({
   pidStart: Type.Optional(Type.String()),
   // The pi process that launched it. Only that process may reap it.
   parentPid: Type.Number(),
+  host: Type.Optional(Type.Literal("hc")),
 });
 const endedSchema = Type.Object({
   agent: identitySchema,
@@ -68,7 +75,7 @@ export type EndedRecord = Static<typeof endedSchema>;
 export type AgentRecord = Static<typeof recordSchema>;
 
 interface Run {
-  child: PiChild;
+  child: AgentChild;
   background: boolean;
   // Set once the run is told to end: the exit code no longer decides the
   // status. teardown means the session is going away, so no notice follows.
@@ -110,6 +117,17 @@ function saveOutput(identity: AgentIdentity, text: string): Pick<EndedRecord, "f
   }
 }
 
+// Pi names the file <timestamp>_<session id>.jsonl, reopens it on a resume,
+// and writes it only once the first message is in.
+export function sessionFile({ sessionDir, sessionId }: AgentIdentity): string | undefined {
+  try {
+    const name = readdirSync(sessionDir).find((n) => n.endsWith(`_${sessionId}.jsonl`));
+    return name && join(sessionDir, name);
+  } catch {
+    return undefined;
+  }
+}
+
 function settle(worktree: Worktree): { kept: boolean; note: string } {
   try {
     return { kept: settleWorktree(worktree), note: "" };
@@ -119,10 +137,14 @@ function settle(worktree: Worktree): { kept: boolean; note: string } {
 }
 
 function childArgs(identity: AgentIdentity, depth: number): string[] {
-  const args = ["--mode", "rpc", "--session-id", identity.sessionId, "--session-dir", identity.sessionDir];
+  const args = ["--session-id", identity.sessionId, "--session-dir", identity.sessionDir];
   if (identity.model) args.push("--model", identity.model);
   if (identity.thinking) args.push("--thinking", identity.thinking);
   if (identity.systemPromptFile) args.push("--append-system-prompt", identity.systemPromptFile);
+  // @gotgenes/pi-permission-system 42.0.0 names a forwarded ask's agent from this tag in the child's
+  // system prompt, and picks its per-agent permission policy by that name; without it the parent's
+  // dialog says "unknown".
+  args.push("--append-system-prompt", `<active_agent name="${identity.subagentType}" />`);
   args.push(`--${DEPTH_FLAG}`, String(depth + 1));
   const excluded = [...(identity.readonly ? ["edit", "write"] : []), ...(depth + 1 >= MAX_SPAWN_DEPTH ? ["agent"] : [])];
   if (excluded.length) args.push("--exclude-tools", excluded.join(","));
@@ -164,7 +186,8 @@ function fateOf(record: RunningRecord): Fate {
   if (info && pidStart !== undefined && info.start !== pidStart) return "gone";
   // With no word from the system, two live pids keep the record: calling a
   // live agent stopped would let a message start a second process on its session.
-  const launcherHasIt = info ? info.parentPid === parentPid : alive(parentPid);
+  // An hc terminal's program is a child of herdr-core, not of the pi that launched it.
+  const launcherHasIt = info && record.host !== "hc" ? info.parentPid === parentPid : alive(parentPid);
   if (parentPid !== process.pid && launcherHasIt) return "kept";
   return info && info.start === pidStart ? "orphan" : "unknown";
 }
@@ -177,11 +200,27 @@ function reapOrphan(record: RunningRecord, killGraceMs: number): Promise<void> {
 
 const now = () => new Date().toISOString();
 
+// A value the call left out came from the agent file, which the caller never
+// saw, so an error over the value names that file.
+function fromAgentFile<T>(file: string | undefined, passed: string | undefined, resolve: () => T): T {
+  try {
+    return resolve();
+  } catch (e) {
+    if (passed !== undefined || file === undefined || !(e instanceof InvalidValueError)) throw e;
+    throw new Error(`${file}: ${(e as Error).message}`);
+  }
+}
+
 export class AgentRunner {
   private readonly agents = new Map<string, AgentState>();
   // Set once the session tears its agents down; a launch after that would
   // start a child nothing stops.
   private closed = false;
+  // The footer of the top-level session only: a child's status would go to its
+  // parent's stdout, which the reader ignores.
+  private ui?: ExtensionContext["ui"];
+  private ownSessionId?: string;
+  private projectTrusted = false;
 
   constructor(
     private readonly pi: ExtensionAPI,
@@ -194,7 +233,10 @@ export class AgentRunner {
     const def = types.get(type);
     if (!def) throw new Error(`Unknown subagent_type "${type}". Valid types: ${[...types.keys()].join(", ")}.`);
     const parentModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
-    const model = resolveModel(params.model ?? def.model, this.settings, readSheet(this.settings.agentDir), parentModel);
+    const model = fromAgentFile(def.file, params.model, () => resolveModel(params.model ?? def.model, this.settings, readSheet(this.settings.agentDir, ctx.cwd), parentModel, ctx.modelRegistry));
+    // Claude Code subagents without an effort run at their definition's effort, else the session's.
+    const effort = params.effort ?? def.effort;
+    const thinking = effort === undefined ? this.pi.getThinkingLevel() : fromAgentFile(def.file, params.effort, () => checkEffort(effort, this.settings));
 
     const id = `a${randomBytes(8).toString("hex")}`;
     const state = join(this.settings.agentDir, PSTACK_STATE_DIR, ctx.sessionManager.getSessionId());
@@ -207,8 +249,7 @@ export class AgentRunner {
       description: params.description,
       subagentType: type,
       model,
-      // Claude Code subagents without an effort run at the session's effort.
-      thinking: def.effort ?? this.pi.getThinkingLevel(),
+      thinking,
       readonly: params.readonly || undefined,
       sessionId: randomUUID(),
       sessionDir,
@@ -217,6 +258,7 @@ export class AgentRunner {
       worktree,
       startedAt: now(),
     };
+    this.attachSession(ctx);
     return this.launch(identity, params.prompt, params.run_in_background === true);
   }
 
@@ -227,24 +269,68 @@ export class AgentRunner {
       this.ensureSystemPrompt(identity);
       if (identity.worktree) ensureWorktree(identity.worktree);
     } catch (e) {
-      const failed: EndedRecord = { agent: identity, status: "failed", exitCode: null, endedAt: now(), finalText: (e as Error).message };
-      this.agents.set(identity.id, { kind: "ended", record: failed });
-      this.persist(failed);
+      // A resume that cannot launch leaves the agent's record as its last run ended.
+      if (!this.agents.has(identity.id)) {
+        const failed: EndedRecord = { agent: identity, status: "failed", exitCode: null, endedAt: now(), finalText: (e as Error).message };
+        this.agents.set(identity.id, { kind: "ended", record: failed });
+        this.persist(failed);
+      }
       throw e;
     }
-    const { command, args } = this.settings.pi;
-    const child = new PiChild(
-      command,
-      [...args, "--extension", join(this.settings.pluginRoot, "pi", "index.ts"), "--skill", join(this.settings.pluginRoot, "skills"), ...childArgs(identity, this.settings.depth)],
-      { cwd: identity.cwd, exitGraceMs: this.settings.exitGraceMs },
-      prompt,
-    );
+    const child = this.spawnChild(identity, prompt);
     const pidStart = child.pid === undefined ? undefined : inspect(child.pid)?.start;
     const record: RunningRecord = { agent: identity, status: "running", pid: child.pid, pidStart, parentPid: process.pid };
     const run: Run = { child, background, done: child.exited.then((exit) => this.finish(identity, run, exit)) };
     this.agents.set(identity.id, { kind: "local", record, run });
     this.persist(record);
+    this.showStatus();
     return record;
+  }
+
+  private spawnChild(identity: AgentIdentity, prompt: string): AgentChild {
+    const { command, args } = this.settings.pi;
+    const base = [...args, "--extension", join(this.settings.pluginRoot, "pi", "index.ts"), "--skill", join(this.settings.pluginRoot, "skills")];
+    const flags = childArgs(identity, this.settings.depth);
+    const env = { [PARENT_SESSION_ENV]: this.ownSessionId };
+    // The session's sheet, as for the model: a worktree is a checkout of HEAD and lacks an uncommitted sheet.
+    if (readSheet(this.settings.agentDir, identity.worktree?.repo ?? identity.cwd)?.hcHost && process.env.HC_TERMINAL_ID) {
+      // An interactive pi asks whether to trust the project before it reports any status; the parent already decided.
+      return new HcChild(identity.id, command, [...base, ...flags, this.projectTrusted ? "--approve" : "--no-approve"], {
+        cwd: identity.cwd,
+        env: { ...env, PI_CODING_AGENT_DIR: this.settings.agentDir },
+        envFile: join(identity.sessionDir, `${identity.id}.env`),
+        graceMs: this.settings.killGraceMs,
+        transcript: () => sessionFile(identity),
+        onStart: (pid) => this.track(identity.id, { host: "hc", pid, pidStart: inspect(pid)?.start }),
+      }, prompt);
+    }
+    return new PiChild(command, [...base, "--mode", "rpc", ...flags], { cwd: identity.cwd, env, exitGraceMs: this.settings.exitGraceMs, onActivity: () => this.showStatus() }, prompt);
+  }
+
+  private track(id: string, handle: Pick<RunningRecord, "host" | "pid" | "pidStart">): void {
+    const state = this.agents.get(id);
+    if (state?.kind !== "local") return;
+    Object.assign(state.record, handle);
+    this.persist(state.record);
+  }
+
+  // From session_start too: a reloaded session can resume an agent with
+  // send_message before any agent call.
+  attachSession(ctx: ExtensionContext): void {
+    this.ownSessionId = ctx.sessionManager.getSessionId();
+    this.projectTrusted = ctx.isProjectTrusted?.() ?? false;
+    if (ctx.hasUI && this.settings.depth === 0) this.ui = ctx.ui;
+  }
+
+  private showStatus(): void {
+    const running = this.locals().map(({ record, run }) => ({ id: record.agent.id, at: run.child.activity?.at ?? record.agent.startedAt, activity: run.child.activity }));
+    this.ui?.setStatus(STATUS_KEY, statusText(running));
+  }
+
+  // A running agent's live activity, which only a local one has.
+  activityOf(agent: AgentIdentity): Activity | undefined {
+    const state = this.agents.get(agent.id);
+    return state?.kind === "local" ? state.run.child.activity : undefined;
   }
 
   // Pi appends a path it cannot find as the prompt text itself.
@@ -271,10 +357,11 @@ export class AgentRunner {
     };
     this.agents.set(identity.id, { kind: "ended", record });
     this.persist(record);
+    this.showStatus();
     // The model that called stop_agent already has the result, so a stop's
     // notice joins the context without starting another turn.
     if (run.background && run.ending !== "teardown") {
-      this.pi.sendMessage(noticeOf(record), status !== "stopped" ? { triggerTurn: true, deliverAs: "steer" } : { triggerTurn: false });
+      this.pi.sendMessage(noticeOf(record, sessionFile(identity)), status !== "stopped" ? { triggerTurn: true, deliverAs: "steer" } : { triggerTurn: false });
     }
     return record;
   }
@@ -348,7 +435,6 @@ export class AgentRunner {
     if (state.kind === "ended") return state.record;
     const { run } = state;
     if (run.ending !== "teardown") run.ending = ending;
-    void run.child.command({ type: "abort" });
     run.child.end(this.settings.killGraceMs);
     return run.done;
   }
@@ -356,6 +442,7 @@ export class AgentRunner {
   async stopAll(): Promise<void> {
     this.closed = true;
     await Promise.all(this.locals().map((state) => this.stop(state.record.agent.id, "teardown")));
+    this.ui?.setStatus(STATUS_KEY, undefined);
   }
 
   // For an exit that cannot wait: SIGTERM lets each child pi stop its own agents.

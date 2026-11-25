@@ -10,7 +10,7 @@
       "name": "pstack",
       "source": "./plugins/pstack",
       "description": "Michael Denyer's pstack-claude, based on Lauren Tan's pstack, packaged here as an unofficial Codex-focused distribution maintained by Forrest0721.",
-      "version": "0.9.83"
+      "version": "0.9.155"
     }
   ]
 }

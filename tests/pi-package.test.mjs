@@ -1,11 +1,11 @@
 // The compiler options the Pi typecheck derives from where Pi is installed.
 import { expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 
-import { piCompilerPaths } from "../tools/pi-package.mjs";
+import { PI_FLOOR, piCompilerPaths, piDependency, versionAtLeast } from "../tools/pi-package.mjs";
 
 const DEP_FILES = [
   "@types/node/index.d.ts",
@@ -30,8 +30,23 @@ test.each([
     const { typeRoots, baseUrl, paths } = piCompilerPaths(piDir);
 
     expect(typeRoots.map((dir) => existsSync(join(dir, "node", "index.d.ts")))).toEqual([true]);
-    const named = Object.values(paths).flat().map((target) => resolve(baseUrl, target.replace("*", "value")));
+    const named = Object.values(paths).flat().map((target) => resolve(baseUrl, target.replaceAll("*", "value")));
     expect(named.filter((file) => !existsSync(file))).toEqual([]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("piDependency picks the copy nested under Pi over one beside it, as Node does", () => {
+  const root = mkdtempSync(join(tmpdir(), "pstack-pi-package-"));
+  try {
+    const piDir = join(root, "node_modules", "@earendil-works", "pi-coding-agent");
+    const nested = join(piDir, "node_modules", "@earendil-works", "pi-ai");
+    mkdirSync(nested, { recursive: true });
+    mkdirSync(join(root, "node_modules", "@earendil-works", "pi-ai"), { recursive: true });
+
+    expect(piDependency(piDir, "@earendil-works/pi-ai")).toBe(nested);
+    expect(piDependency(piDir, "typebox")).toBeNull();
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -40,13 +55,16 @@ test.each([
 const PI = join("@earendil-works", "pi-coding-agent");
 const PI_PACKAGE_MODULE = resolve(import.meta.dir, "../tools/pi-package.mjs");
 
-// Bun's child processes ignore edits to process.env, so run findPiPackage in a fresh bun with HOME, npm, and the
-// bun variables pointed into a temp dir. Only the fake tree can match.
+// Bun's child processes ignore edits to process.env, so run findPiPackage in a fresh bun with HOME, npm, brew, and
+// the bun variables pointed into a temp dir. Only the fake tree can match.
 function findPiUnder(root, env, globalDir) {
   const piDir = join(globalDir, PI);
   mkdirSync(piDir, { recursive: true });
   writeFileSync(join(piDir, "package.json"), "{}");
-  const childEnv = { ...process.env, HOME: join(root, "home"), npm_config_prefix: join(root, "npm"), ...env };
+  const bin = join(root, "bin");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, "brew"), `#!/bin/sh\necho ${JSON.stringify(join(root, "brew"))}\n`, { mode: 0o755 });
+  const childEnv = { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}`, HOME: join(root, "home"), npm_config_prefix: join(root, "npm"), ...env };
   for (const key of ["PI_PACKAGE_DIR", "BUN_INSTALL", "BUN_INSTALL_GLOBAL_DIR", "XDG_CACHE_HOME"]) if (!(key in env)) delete childEnv[key];
   const run = spawnSync(process.execPath, ["-e", `import(${JSON.stringify(PI_PACKAGE_MODULE)}).then((m) => console.log(m.findPiPackage()))`], { env: childEnv, encoding: "utf8" });
   return { found: run.stdout.trim(), piDir };
@@ -66,6 +84,16 @@ test.each([
   }
 });
 
+test.skipIf(process.platform === "win32")("findPiPackage finds a Pi that brew install put under the Homebrew prefix", () => {
+  const root = mkdtempSync(join(tmpdir(), "pstack-pi-package-"));
+  try {
+    const { found, piDir } = findPiUnder(root, {}, join(root, "brew", "opt", "pi-coding-agent", "libexec", "lib", "node_modules"));
+    expect(found).toBe(piDir);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("findPiPackage still finds a Pi under HOME's default bun directory", () => {
   const root = mkdtempSync(join(tmpdir(), "pstack-pi-package-"));
   try {
@@ -74,4 +102,23 @@ test("findPiPackage still finds a Pi under HOME's default bun directory", () => 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("versionAtLeast compares each part of a version as a number", () => {
+  const cases = [["1.5.1", "1.5.1"], ["1.5.2", "1.5.1"], ["1.10.0", "1.9.2"], ["2.0.0", "1.5.1"], ["1.5.0", "1.5.1"], ["1.4.9", "1.5.1"], ["0.9.9", "1.0.0"]];
+  expect(cases.map(([version, floor]) => versionAtLeast(version, floor))).toEqual([true, true, true, true, false, false, false]);
+});
+
+test("CI installs PI_FLOOR, and each doc that states the oldest supported Pi names it", () => {
+  const stated = [
+    [".github/workflows/ci.yml", `@earendil-works/pi-coding-agent@${PI_FLOOR} `],
+    ["README.md", `Pi ${PI_FLOOR} or later`],
+    ["docs/reference.md", `Pi ${PI_FLOOR} or later`],
+    ["docs/reference.md", `verified on Pi ${PI_FLOOR}`],
+    ["docs/pi-equivalence.md", `how Pi ${PI_FLOOR} provides`],
+    ["CONTRIBUTING.md", `\`pi\` ${PI_FLOOR}`],
+    ["plugins/pstack/pi/slash.ts", `code from pi ${PI_FLOOR}`],
+  ];
+  const stale = stated.filter(([file, phrase]) => !readFileSync(resolve(import.meta.dir, "..", file), "utf8").includes(phrase));
+  expect(stale).toEqual([]);
 });

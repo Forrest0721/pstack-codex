@@ -1,24 +1,34 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type Static, Type } from "typebox";
 
-import { listing, resultText } from "./agent-text.ts";
-import type { AgentRunner } from "./agents.ts";
+import { agentsReport, listing, resultText } from "./agent-text.ts";
+import { type AgentRunner, sessionFile } from "./agents.ts";
+import { loadAgentTypes } from "./agent-files.ts";
+import { type AgentDefinition, GENERAL_PURPOSE, type Settings } from "./config.ts";
 import { isForegroundWait } from "./sleep-wait.ts";
 
-const agentParams = Type.Object(
+// Claude Code's Agent tool lists every agent type, the user's included, with its description.
+const typeLine = ([type, { description }]: [string, AgentDefinition]) => `- ${type === GENERAL_PURPOSE ? `${type} (default)` : type}${description ? `: ${description}` : ""}`;
+
+const agentParams = (types: Map<string, AgentDefinition>) => Type.Object(
   {
     description: Type.String({ description: "A short (3-5 word) description of the task" }),
     prompt: Type.String({ description: "The task for the agent to perform" }),
     subagent_type: Type.Optional(
       Type.String({
-        description:
-          "Agent definition to run: general-purpose (default), pstack:poteto-agent, pstack:comment-sicko, pstack:poteto-agent-<level>, or pstack:effort-<level>.",
+        description: `Agent definition to run, one of:\n${[...types].map(typeLine).join("\n")}\nA name without the pstack: prefix, other than general-purpose, is an agent file in pstack-agents in the Pi agent directory, whose tools:, disallowedTools:, and isolation: fields are not applied.`,
       }),
     ),
     model: Type.Optional(
       Type.String({
         description:
-          "Optional model for this agent: a family name (opus, fable, sonnet, haiku) or a full provider/id. If omitted, the agent runs on the parent's model.",
+          "Optional model for this agent: a family name (opus, fable, sonnet, haiku) or a full provider/id. If omitted, the agent runs on its agent file's model, else on the parent's model.",
+      }),
+    ),
+    effort: Type.Optional(
+      Type.String({
+        description:
+          "Reasoning effort for this agent, one of the levels in models.json (low, medium, high, xhigh, max). If omitted, the agent runs at its agent file's effort, else at the parent's thinking level.",
       }),
     ),
     run_in_background: Type.Optional(Type.Boolean({ description: "Return at once; a completion notice arrives when the agent exits." })),
@@ -27,7 +37,7 @@ const agentParams = Type.Object(
   },
   { additionalProperties: false },
 );
-export type AgentParams = Static<typeof agentParams>;
+export type AgentParams = Static<ReturnType<typeof agentParams>>;
 
 const sendParams = Type.Object(
   {
@@ -48,7 +58,15 @@ const SLEEP_BLOCKED =
 
 // model-only exposure keeps every tool declared to the model even under
 // codemode.mode "only", which would otherwise reach them only through scripts.
-export function registerAgentTools(pi: ExtensionAPI, runner: AgentRunner): void {
+export function registerAgentTools(pi: ExtensionAPI, runner: AgentRunner, settings: Settings): void {
+  const lookups = { transcriptOf: sessionFile, activityOf: runner.activityOf.bind(runner) };
+  // The user's own view: shown, never sent to the model.
+  pi.registerCommand("pstack-agents", {
+    description: "Show each pstack agent's status, what a running one is doing, and its transcript",
+    async handler(_args, ctx) {
+      ctx.ui.notify(agentsReport(runner.list(), lookups), "info");
+    },
+  });
   // Wording alone did not stop models from polling a background agent with
   // sleep, which spends turns and leads them to cut the agent short.
   pi.on("tool_call", (event) => {
@@ -63,7 +81,7 @@ export function registerAgentTools(pi: ExtensionAPI, runner: AgentRunner): void 
     description:
       "Launch a subagent: a separate pi process with its own context. Foreground (default) waits and returns its final text; run_in_background returns an agentId at once and a completion notice arrives when it exits. Use send_message to steer a running agent or continue a finished one, stop_agent to stop one, list_agents to see them.",
     promptSnippet: "Launch a subagent (foreground or background, optional worktree isolation)",
-    parameters: agentParams,
+    parameters: agentParams(loadAgentTypes(settings)),
     async execute(_id, params, signal, _onUpdate, ctx) {
       const started = runner.start(params, ctx);
       if (params.run_in_background) {
@@ -76,7 +94,7 @@ export function registerAgentTools(pi: ExtensionAPI, runner: AgentRunner): void 
       signal?.addEventListener("abort", onAbort, { once: true });
       const record = await runner.wait(started.agent.id).finally(() => signal?.removeEventListener("abort", onAbort));
       return {
-        content: [{ type: "text", text: resultText(record) }],
+        content: [{ type: "text", text: resultText(record, sessionFile(record.agent)) }],
         details: { agentId: record.agent.id, status: record.status },
         isError: record.status !== "completed",
       };
@@ -104,10 +122,10 @@ export function registerAgentTools(pi: ExtensionAPI, runner: AgentRunner): void 
     label: "List agents",
     exposure: "model-only",
     description:
-      "List every agent this session started with its status. running means the process is alive; completed, failed, and stopped are reported only after the process exited.",
+      "List every agent this session started with its status. running means the process is alive; completed, failed, and stopped are reported only after the process exited. sessionFile is the agent's transcript, once its first message is written: the user can follow it with tail -f, or render a finished one with pi --export. A running agent also lists activity: its current or latest tool call and its latest message. The user sees the same with /pstack-agents.",
     parameters: Type.Object({}, { additionalProperties: false }),
     async execute() {
-      const agents = listing(runner.list());
+      const agents = listing(runner.list(), lookups);
       return { content: [{ type: "text", text: JSON.stringify(agents, null, 2) }], details: { agents } };
     },
   });

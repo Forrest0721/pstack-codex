@@ -1,7 +1,7 @@
 {
   "name": "pstack",
   "private": true,
-  "version": "0.9.83",
+  "version": "0.9.155",
   "description": "Unofficial Codex-focused distribution of Michael Denyer's pstack-claude, based on Lauren Tan's pstack. Maintainer-tested on Codex.",
   "author": {
     "name": "Michael Denyer",
@@ -36,6 +36,9 @@
     "extensions": [
       "./plugins/pstack/pi/index.ts"
     ]
+  },
+  "exports": {
+    "./server": "./plugins/pstack/opencode/index.js"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

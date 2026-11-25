@@ -1,6 +1,6 @@
 {
   "name": "pstack",
-  "version": "0.9.83",
+  "version": "0.9.155",
   "description": "Unofficial Codex-focused distribution of Michael Denyer's pstack-claude, based on Lauren Tan's pstack. Maintainer-tested on Codex.",
   "author": {
     "name": "Michael Denyer",

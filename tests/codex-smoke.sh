@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="$(tr -d '[:space:]' <"$repo/VERSION")"
-installed="$(codex plugin list --json)"
+installed="$(codex plugin list --marketplace pstack-codex --json)"
 
 jq -e --arg version "$version" '
   any(.installed[];
@@ -16,7 +16,7 @@ jq -e --arg version "$version" '
 ' >/dev/null <<<"$installed"
 
 plugin_root="$(jq -r '.installed[] | select(.pluginId == "pstack@pstack-codex") | .source.path' <<<"$installed")"
-context="$(CLAUDE_PLUGIN_ROOT="$plugin_root" "$plugin_root/hooks/session-start.sh" codex)"
+context="$(env -u CLAUDE_PLUGIN_ROOT "$plugin_root/hooks/session-start.sh" codex)"
 grep -Fq "You have pstack." <<<"$context"
 grep -Fq 'pstack:poteto-mode' <<<"$context"
 

@@ -4,7 +4,7 @@ Start with the [README](../README.md) for installation and your first task.
 
 ## Slash commands
 
-The package includes 58 skill directories: 34 public skills and 24 `principle-*` references. Claude Code uses `/pstack:<name>`, and Pi uses `/skill:<name>`. In Codex, request a skill by name or install the [optional shortcuts](#codex) for the `/name` form below.
+The package includes 68 skill directories: 44 public skills and 24 `principle-*` references. Claude Code uses `/pstack:<name>`, Pi uses `/skill:<name>`, and Muse lists each user-invocable skill as `/<name>`. In Codex, mention a skill with `$<name>`, such as `$poteto-mode`, or pick one from `/skills`.
 
 Find each skill's instructions in the [skills tree](../plugins/pstack/skills/).
 
@@ -26,19 +26,29 @@ Find each skill's instructions in the [skills tree](../plugins/pstack/skills/).
 | `/swarm` | fan out N parallel workers across slices or races, then return one aggregated report |
 | `/technical-writing` | write docs, RFCs, readmes, PR descriptions, and commit messages to one layered standard |
 | `/bro` | restate the last message in plain human language, no jargon |
+| `/in-your-own-words` | play back your goal and the problem before the agent starts |
+| `/sharpen` | make a task deeper, not bigger, by naming what a top expert would do and what would show the result is right, then rewrite the prompt to ask for that |
+| `/reframe` | learn the expert words for what you're building, including terms borrowed from neighboring fields with checked sources, then get your description rewritten with them |
 | `/figure-it-out` | design a rigorous, auditable playbook for a task no bundled playbook fits |
 | `/show-me-your-work` | log decisions to a reviewable tsv decision trail |
 | `/blast-radius` | find what a change could break beyond the diff and prove safety by running code |
 | `/recall` | catch up on recent working context from chat history, live state, and the shared record |
+| `/ketchup` | catch up on everything in this chat since your last message, with an executive summary for each action item |
+| `/ketchup-video` | get the `/ketchup` catch-up as a short silent video of slides, with the calls waiting on you as text under it |
 | `/setup-pstack` | configure pstack per-role model choices |
 | `/poteto-help` | answer a question about pstack with the prompt to send and the file the answer came from |
 | `/unslop` | clean up writing by removing AI tells |
 | `/no-comments` | strip comments before review, fix the accepted findings, encode claimed constraints |
 | `/create-verification-skill` | generate a project-local verification skill and feature map |
 | `/maintain-verification-skill` | re-sync a drifted verification skill and its feature map |
+| `/create-formal-verification-skill` | generate a project-local skill that formally verifies one high-risk property |
+| `/maintain-formal-verification-skill` | re-sync a formal verification after the code it covers changed |
+| `/statechart` | check a TLA+ model and draw it as a Mermaid statechart, with the shortest path to each state that breaks a rule |
 | `/deslop` | deslop a diff before commit |
 | `/babysit` | monitor an open PR, fix CI/comments, keep it merge-ready |
+| `/thermo-nuclear-review` | audit a branch's changes for bugs, breakage, security issues, devex regressions, and feature-gate leaks |
 | `/thermo-nuclear-code-quality-review` | extremely strict maintainability audit |
+| `/thermos` | run both thermo-nuclear reviews as parallel subagents and synthesize their findings |
 | `/make-pr-easy-to-review` | clean noisy history and improve PR description before review |
 | `/fix-ci` | find failing PR checks, inspect logs, apply focused fixes |
 | `/fix-merge-conflicts` | non-interactively resolve merge conflicts, validate, finalize |
@@ -47,25 +57,32 @@ Find each skill's instructions in the [skills tree](../plugins/pstack/skills/).
 
 ## Runtime support
 
-All runtimes share [one skills tree](../plugins/pstack/skills/). A skills-only installation includes the skills, scripts, agent references, and license notices. The Claude Code, Codex, and GitHub Copilot plugins also install automatic routing hooks, and the Pi package adds an extension that injects the same routing and supplies the subagent tools. Codex command shortcuts are separate.
+All runtimes share [one skills tree](../plugins/pstack/skills/). A skills-only installation includes the skills, scripts, agent references, and license notices. Claude Code, Codex, GitHub Copilot, Muse, MiniMax Code, and Antigravity use plugin hooks for routing. Kimi adds routing while its plugin is enabled, OMP adds it before main-agent turns, OpenCode adds it at each model step in root sessions, and Pi adds it through an extension that also supplies subagent tools. Grok exposes a routing hint through a skill description, which the model may not follow.
 
-This fork performs live release verification only on Codex. The other adapters and their automated tests are inherited from [`pstack-claude`](https://github.com/michael-denyer/pstack-claude). They remain available, but their presence is not a live compatibility claim from this fork.
+This fork performs live release verification only on Codex. The other adapters and their automated tests come from `pstack-claude`. References to earlier smoke tests or version-specific checks describe work reported by that project.
 
-| Runtime | Setup and verification in this fork |
+| Runtime | Setup and recorded verification |
 | --- | --- |
-| Claude Code | The native marketplace files and Claude tool mapping are included. This fork has not live-verified them. |
-| Codex | Install `pstack@pstack-codex`, trust its hook through `/hooks`, and use the [Codex mapping](../plugins/pstack/skills/poteto-mode/references/codex-tools.md). The release process tests a clean install and a real skill invocation. |
-| Pi | The Pi package, extension, mapping, and inherited automated tests are included. This fork has not run the live Pi checks. |
-| GitHub Copilot | The native marketplace files, mapping, and inherited automated tests are included. This fork has not run a live Copilot check. |
-| Prime Agent | Use the shared skills installation. This fork has not live-verified Prime Agent. |
-| OpenCode | Use the shared skills installation and configure agents, commands, and permissions in `opencode.json`. This fork has not live-verified OpenCode. |
-| Gemini CLI | Use the shared skills installation. This fork has not live-verified Gemini CLI. |
+| Claude Code | Install the marketplace plugin (Claude Code 2.1.292 or later). Skills use Claude tool names and model defaults; the plugin installs automatic routing. |
+| Codex | Install `pstack@pstack-codex` and trust its hook through `/hooks`. The [Codex mapping](../plugins/pstack/skills/poteto-mode/references/codex-tools.md) translates Claude tools and model names. |
+| Pi | Install the repository as a Pi package with `pi install` (Pi 1.5.1 or later). The [Pi extension](../plugins/pstack/pi/index.ts) registers the subagent, question, and wake-up tools and `/loop`, and the [Pi mapping](../plugins/pstack/skills/poteto-mode/references/pi-tools.md) translates Claude tools and model names. The [equivalence table](pi-equivalence.md) records each Claude Code mechanism and how it was verified on Pi 1.5.1. |
+| GitHub Copilot | Install the plugin through the repository's marketplace; the CLI and the GitHub Copilot app share it. The [Copilot mapping](../plugins/pstack/skills/poteto-mode/references/copilot-tools.md) translates Claude tools, paths, and model roles, and maps app-only tools to CLI fallbacks. Install, routing, agent dispatch, and first-run setup are smoke-tested on the CLI; see [GitHub Copilot](#github-copilot). |
+| Muse | Install the native plugin bundle with `muse plugins install`, then approve its hooks and agent definitions with `muse plugins approve pstack`. The [Muse mapping](../plugins/pstack/skills/poteto-mode/references/muse-tools.md) translates Claude tools, subagents, transcripts, and model roles. See [Muse](#muse). |
+| OMP | Install through the marketplace as described in the [upstream installation guide](https://github.com/michael-denyer/pstack-claude/blob/v0.9.155/README.md#install). The [OMP mapping](../plugins/pstack/skills/poteto-mode/references/omp-tools.md) covers tools and model roles. On OMP 18.16.0, installation from a local marketplace, skill access, and the routing toggle were verified with a synthetic provider; model compliance has not been tested. |
+| Kimi Code CLI | Install the native plugin from a release containing its manifest, or test a clean local copy as described in the [upstream installation guide](https://github.com/michael-denyer/pstack-claude/blob/v0.9.155/README.md#install). The [Kimi mapping](../plugins/pstack/skills/poteto-mode/references/kimi-tools.md) covers tool and model differences. On Kimi Code CLI 2.4.1 for macOS, installation and delivery of routing and skill content to a synthetic provider were verified; model compliance has not been tested. |
+| Grok Build | Install the native plugin from a local checkout as described in the [upstream installation guide](https://github.com/michael-denyer/pstack-claude/blob/v0.9.155/README.md#install). The [Grok mapping](../plugins/pstack/skills/poteto-mode/references/grok.md) covers tool and model differences. On Grok Build 1.0.70 for macOS, `tests/grok-smoke.py` checked that a synthetic provider received the routing skill description and explicit skill content. |
+| MiniMax Code | Copy `plugins/pstack` into `${MINIMAX_DATA_DIR:-~/.minimax}/plugins/`, where MiniMax Code loads it as the local plugin `pstack@local` through its Claude Code reader, skills, agents, and routing hook included. The [MiniMax Code mapping](../plugins/pstack/skills/poteto-mode/references/minimax-tools.md) translates Claude tools, subagents, and model roles. On 0.7.4, synthetic-provider guest sessions delivered routing and the explicit `pstack:poteto-mode` skill when enabled, and disabled controls omitted them. Agent dispatch and real-model compliance remain unverified. Plugin loading is also checked by `tests/minimax-smoke.sh`. |
+| Antigravity (`agy`) | Install `plugins/pstack` with `agy plugin install ./plugins/pstack`. Antigravity reads [`.antigravity-plugin/plugin.json`](../plugins/pstack/.antigravity-plugin/plugin.json) and the root [`hooks.json`](../plugins/pstack/hooks.json). The [Antigravity mapping](../plugins/pstack/skills/poteto-mode/references/agy-tools.md) translates Claude tools, subagents, transcripts, and model roles. On macOS, a signed-in `agy` 1.5.0 session received the routing instruction and read the full `poteto-mode` skill. A separate session dispatched `poteto-agent` and received its reply. The hook uses `sh`; Windows is untested. |
+| DeepSeek Harness | Use the [shared skills installation](#shared-skills-installation) and [DSH mapping](../plugins/pstack/skills/poteto-mode/references/dsh-tools.md). No native pstack bundle, routing hook, or role sheet is installed. On 0.2.2-rc.1, isolated registry/provider loading and a native subagent reply were checked; full playbook compliance and permission enforcement remain unverified. |
+| Prime Agent | Its documentation describes shared-directory discovery; it has not been tested in a live session. Choose tools and models through Prime's configuration. |
+| OpenCode 2 | Add the checkout's `plugins/pstack/opencode` directory to OpenCode's `plugins` array, or install the repository as a Git package with `opencode plugin add`. The native plugin registers bundled skills under `pstack-` IDs, registers the bundled agents as subagents under their Claude Code names, such as `pstack:poteto-agent`, and injects routing in root sessions. On 2.3.2, `opencode debug agents` lists the four agents; a subagent dispatch to one has not been run against a model. Explicit activation and routing were tested on 2.2.5 with a synthetic loopback provider; CLI delegation was previously verified on 2.0.30. Real model behavior for this plugin remains untested. See the [OpenCode mapping](../plugins/pstack/skills/poteto-mode/references/opencode-tools.md). |
+| Gemini CLI | Its documentation describes shared-directory discovery; it has not been tested in a live session. Use `/skills list` to check discovery and `/skills reload` after changes. |
 
-On runtimes other than Codex, the agent must adapt tool names, models, and configuration where no runtime mapping exists. Each included mapping applies only to its named runtime.
+These checks cover skill discovery. Delegation remains unverified on Prime Agent and Gemini CLI, as do their multi-model workflows. On those runtimes, agents must adapt Claude-specific tools, models, and configuration. Each mapping applies only to its runtime.
 
 ### Automatic routing
 
-The Claude Code, Codex, and GitHub Copilot plugins load the same short [routing instruction](../plugins/pstack/hooks/session-start-context.md) on startup, resume, clear, and compact. The [POSIX hook](../plugins/pstack/hooks/session-start.sh) runs on Claude Code, POSIX Codex, and GitHub Copilot, where it prints the instruction as JSON `additionalContext` with a Copilot addendum. On Windows, Codex uses a [PowerShell adapter](../plugins/pstack/hooks/session-start.ps1) through its `commandWindows` override and does not require Bash. The adapter runs with `-ExecutionPolicy Bypass`, which a machine or user execution policy set by Group Policy overrides; on such machines the hook fails and no instruction loads. Codex requires the user to trust plugin hooks through `/hooks`. On Pi, the [extension](../plugins/pstack/pi/prompt.ts) adds the same instruction to the system prompt at every agent start, so it survives compaction. The instruction invokes `poteto-mode` when a task meets any of these conditions:
+The Claude Code, Codex, and GitHub Copilot plugins load the same short [routing instruction](../plugins/pstack/hooks/session-start-context.md) on startup, resume, clear, and compact, and Codex also loads it when a chat is forked. The Kimi plugin contributes that instruction to the system prompt while enabled, with the limitations in its [mapping](../plugins/pstack/skills/poteto-mode/references/kimi-tools.md). The Muse plugin loads its [Muse wording](../plugins/pstack/hooks/session-start-muse.md) of the same instruction. MiniMax Code runs the Claude Code hook, which finds `MINIMAX_PLUGIN_ROOT` and loads the [MiniMax Code wording](../plugins/pstack/hooks/session-start-minimax.md) instead. The [POSIX hook](../plugins/pstack/hooks/session-start.sh) runs on Claude Code, POSIX Codex, and POSIX GitHub Copilot, where it prints the instruction as JSON `additionalContext` with a Copilot addendum, and on Muse, where it prints plain text. On Windows, Codex runs a [PowerShell adapter](../plugins/pstack/hooks/session-start.ps1) through its `commandWindows` override, GitHub Copilot runs it through its `powershell` override, and Muse runs the same adapter as a second SessionStart hook, so none of them requires Bash. The adapter runs with `-ExecutionPolicy Bypass`, which a machine or user execution policy set by Group Policy overrides; on such machines the hook fails and no instruction loads. Codex requires the user to trust plugin hooks through `/hooks`. On OMP, the marketplace plugin adds its routing instruction before each main-agent turn; the global `session hook: off` setting disables it. On Pi, the [extension](../plugins/pstack/pi/prompt.ts) adds the same instruction to the system prompt at every agent start, so it survives compaction. The [OpenCode plugin](../plugins/pstack/opencode/index.js) adds its [routing instruction](../plugins/pstack/hooks/session-start-opencode.md) at each model step in root sessions, including after compaction. The instruction invokes `poteto-mode` when a task meets any of these conditions:
 
 - It touches more than one file or changes a signature other files call.
 - It involves a design or architecture choice.
@@ -73,13 +90,13 @@ The Claude Code, Codex, and GitHub Copilot plugins load the same short [routing 
 
 Smaller tasks proceed directly. The full skill loads when invoked, and explicit user instructions take precedence.
 
-To disable routing, run `setup-pstack` and turn off the session hook. In Claude Code, use `/pstack:setup-pstack`. You can also write `session hook: off` in the runtime's sheet, at the path in [setup-pstack's runtime table](../plugins/pstack/skills/setup-pstack/SKILL.md#other-runtimes). The hook reads that setting before injecting its instruction. Without the setting, routing stays on.
+To disable routing on runtimes that support the session hook setting, run `setup-pstack` and turn it off, or write `session hook: off` in the runtime's sheet at the path in [setup-pstack's runtime table](../plugins/pstack/skills/setup-pstack/references/runtimes.md). In Claude Code, use `/pstack:setup-pstack`. On Claude Code and Pi, a project's committed `.claude/pstack-models.md` replaces the user's sheet in that project, so `session hook: off` there turns routing off for that project alone. A Claude Code cloud session starts with an empty home, so the user's sheet does not reach it. Set the environment variable `PSTACK_SESSION_HOOK=off` in the cloud environment instead. The session hook checks that variable before the sheet on Claude Code, and on Codex, GitHub Copilot, Muse, and Antigravity when the runtime passes the variable to its hooks. MiniMax Code passes its hooks a fixed set of variables, so use the sheet there. The OMP, OpenCode, and Pi plugins read only the sheet. Without the setting, routing stays on. On OMP this setting applies across profiles. On Kimi, disable the plugin to stop its routing instruction. Grok's routing hint is not controlled by the session hook setting.
 
-Skills-only installs and other runtimes do not include the hook or the Pi extension. Request `poteto-mode` explicitly, or add a standing instruction to the runtime's instruction file.
+Skills-only installs and other runtimes do not include these integrations. Request `poteto-mode` explicitly, or add a standing instruction to the runtime's instruction file.
 
 ### Shared skills installation
 
-Use this path for Prime Agent, opencode, Gemini CLI, or a skills-only Codex installation. Clone the repository and link its skills into `~/.agents/skills/`:
+Use this path for Prime Agent, Gemini CLI, DeepSeek Harness, or a skills-only Codex installation. Clone this repository and link its skills into `~/.agents/skills/`.
 
 ```shell
 git clone https://github.com/Forrest0721/pstack-codex
@@ -91,13 +108,186 @@ for s in plugins/pstack/skills/*/; do
 done
 ```
 
-Keep all skill directories, including the principle references. Leave the clone at this path while the links are installed.
+Keep all skill directories, including the principle references. Leave the clone in place while the links are installed.
 
 ### Manage linked skills
 
-If a destination already exists, inspect it before replacing it. The installation skips existing files, directories, and links.
+The installation skips existing files, directories, and links. If a destination already exists, inspect it before replacing it.
 
-To update, pull changes in the clone that the links point to. To uninstall a linked skill, remove its link at `~/.agents/skills/<name>`. This removes it from every runtime using that directory.
+To update, run `git pull` in the clone, then run the install loop again. A pull updates linked skills. The loop links any new skill directories. To uninstall a linked skill, remove its link at `~/.agents/skills/<name>`. This removes it from every runtime using that directory.
+
+### Install with open-pstack
+
+`open-pstack` is Michael Denyer's installer for upstream `pstack-claude`. Its npm and Homebrew packages contain the upstream distribution. To install `pstack@pstack-codex`, use this repository's [Codex installation commands](../README.md#codex). For `open-pstack` usage and removal, see the [upstream installer reference](https://github.com/michael-denyer/pstack-claude/blob/v0.9.155/docs/reference.md#install-with-open-pstack).
+
+#### Upstream open-pstack recipes
+
+These commands install Michael Denyer's upstream `pstack-claude` distribution. The [upstream installation guide](https://github.com/michael-denyer/pstack-claude/blob/v0.9.155/README.md#install) covers runtime requirements and updates.
+
+<details>
+<summary><strong>Claude Code</strong></summary>
+
+```text
+/plugin marketplace add michael-denyer/pstack-claude
+/plugin install pstack@pstack-claude
+```
+
+Install with `npx open-pstack --only claude`.
+
+</details>
+
+<details>
+<summary><strong>Codex</strong></summary>
+
+```shell
+codex plugin marketplace add michael-denyer/pstack-claude
+codex plugin add pstack@pstack-claude
+```
+
+Install with `npx open-pstack --only codex`.
+
+</details>
+
+<details>
+<summary><strong>Pi</strong></summary>
+
+```shell
+pi install git:github.com/michael-denyer/pstack-claude
+```
+
+Install with `npx open-pstack --only pi`.
+
+</details>
+
+<details>
+<summary><strong>GitHub Copilot</strong></summary>
+
+```shell
+copilot plugin marketplace add michael-denyer/pstack-claude
+copilot plugin install pstack@pstack-claude
+```
+
+Install with `npx open-pstack --only copilot`.
+
+</details>
+
+<details>
+<summary><strong>Muse</strong></summary>
+
+```shell
+git clone https://github.com/michael-denyer/pstack-claude
+cd pstack-claude
+muse plugins install ./plugins/pstack
+muse plugins approve pstack
+```
+
+Install with `npx open-pstack --only muse`.
+
+</details>
+
+<details>
+<summary><strong>OMP</strong></summary>
+
+```shell
+omp plugin marketplace add michael-denyer/pstack-claude
+omp plugin install --scope user pstack@pstack-claude
+```
+
+Install with `npx open-pstack --only omp`.
+
+</details>
+
+<details>
+<summary><strong>Kimi Code CLI</strong></summary>
+
+```text
+/plugins install https://github.com/michael-denyer/pstack-claude
+/reload
+```
+
+Print the in-session commands with `open-pstack --only kimi`.
+
+</details>
+
+<details>
+<summary><strong>Grok Build</strong></summary>
+
+```shell
+git clone https://github.com/michael-denyer/pstack-claude
+cd pstack-claude
+grok plugin install "$PWD/plugins/pstack" --trust
+grok plugin enable pstack
+```
+
+Install with `npx open-pstack --only grok`.
+
+</details>
+
+<details>
+<summary><strong>MiniMax Code</strong></summary>
+
+```shell
+git clone https://github.com/michael-denyer/pstack-claude
+cd pstack-claude
+mkdir -p "${MINIMAX_DATA_DIR:-$HOME/.minimax}/plugins"
+cp -R plugins/pstack "${MINIMAX_DATA_DIR:-$HOME/.minimax}/plugins/pstack"
+```
+
+Install with `npx open-pstack --only minimax`.
+
+</details>
+
+<details>
+<summary><strong>OpenCode 2</strong></summary>
+
+```bash
+opencode plugin add 'github:michael-denyer/pstack-claude#main'
+opencode plugin check 'github:michael-denyer/pstack-claude#main'
+opencode plugin update 'github:michael-denyer/pstack-claude#main'
+```
+
+Install with `npx open-pstack --only opencode`.
+
+</details>
+
+<details>
+<summary><strong>Antigravity (agy)</strong></summary>
+
+```shell
+git clone https://github.com/michael-denyer/pstack-claude
+cd pstack-claude
+agy plugin install ./plugins/pstack
+```
+
+Install with `npx open-pstack --only agy`.
+
+</details>
+
+<details>
+<summary><strong>DeepSeek Harness (skills-only)</strong></summary>
+
+Use the **Other harnesses** recipe below to link the upstream skills. DeepSeek Harness reads the shared skills directory.
+
+Install with `npx open-pstack --only skills`.
+
+</details>
+
+<details>
+<summary><strong>Other harnesses</strong></summary>
+
+```shell
+git clone https://github.com/michael-denyer/pstack-claude
+cd pstack-claude
+mkdir -p ~/.agents/skills
+for s in plugins/pstack/skills/*/; do
+  target=~/.agents/skills/"$(basename "$s")"
+  test -e "$target" || test -L "$target" || ln -s "$(pwd)/$s" "$target"
+done
+```
+
+Install with `npx open-pstack --only skills`.
+
+</details>
 
 ### Install with the skills CLI
 
@@ -111,51 +301,36 @@ The [CI installation check](../.github/workflows/ci.yml) uses the skills CLI to 
 
 ### Codex
 
-The [native plugin manifest](../plugins/pstack/.codex-plugin/plugin.json) points to the shared skills directory and the Codex [SessionStart hook](../plugins/pstack/hooks/codex-hooks.json). The [marketplace catalog](../.agents/plugins/marketplace.json) lists `pstack` in the `pstack-codex` marketplace. Review and trust the hook through `/hooks`; Codex asks again when its definition changes.
+The [native plugin manifest](../plugins/pstack/.codex-plugin/plugin.json) points to the shared skills directory and the Codex [SessionStart hook](../plugins/pstack/hooks/codex-hooks.json). The [marketplace catalog](../.agents/plugins/marketplace.json) lists `pstack` in the `pstack-codex` marketplace. Review and trust the hook, listed as `Loading pstack routing`, through `/hooks`; Codex asks again when its definition changes.
 
-The [README installation](../README.md#codex) registers that catalog with `codex plugin marketplace add`, then installs the plugin with `codex plugin add`. The release check installs the local checkout, confirms that Codex reports `pstack@pstack-codex`, and invokes a pstack skill in a fresh Codex run.
+The [README installation](../README.md#codex) registers that catalog with `codex plugin marketplace add`, then installs the plugin with `codex plugin add`. The [release smoke test](../CONTRIBUTING.md#releasing) checks the installed version, startup routing, and a skill invocation in a fresh Codex session.
 
 OpenAI documents [marketplace registration and the plugin format](https://developers.openai.com/plugins/build/plugins#add-a-marketplace-from-the-cli). If your CLI lacks `plugin add`, use the plugin browser after registering the marketplace, or use the [skills-only installation](#shared-skills-installation).
 
-Request `poteto-mode` by name or select its entry, such as `pstack:poteto-mode`. To enable parallel subagents:
+Invoke a skill the two ways [Codex's skills documentation](https://developers.openai.com/codex/skills) gives. Type `$` and the skill's name, such as `$poteto-mode` or `$babysit`, and choose its entry, or pick it from `/skills`. In a plugin install the entry reads `poteto-mode (pstack)` and inserts `$pstack:poteto-mode`. A skills-only install has no `pstack:` prefix.
 
-```toml
-[features]
-multi_agent = true
-```
-
-Add this setting to `~/.codex/config.toml` if subagents are disabled. Skills such as `arena`, `interrogate`, and `architect` use parallel agents. The [mapping](../plugins/pstack/skills/poteto-mode/references/codex-tools.md) describes a sequential fallback and translates Claude tool names, model defaults, and verification instructions.
-
-For optional slash-command shortcuts, run this from the clone's root:
-
-```shell
-mkdir -p ~/.codex/prompts
-for c in plugins/pstack/.codex-plugin/prompts/*.md; do
-  target=~/.codex/prompts/"$(basename "$c")"
-  test -e "$target" || test -L "$target" || ln -s "$(pwd)/$c" "$target"
-done
-```
-
-Each shortcut invokes its skill. The commands skip existing files and links. Remove a shortcut by deleting its link at `~/.codex/prompts/<name>.md`. Both native-plugin and skills-only installations work without these shortcuts.
+Skills such as `arena`, `interrogate`, and `architect` use parallel agents. The [mapping](../plugins/pstack/skills/poteto-mode/references/codex-tools.md) names the Codex setting that controls subagents, describes a sequential fallback, and translates Claude tool names, model defaults, and verification instructions.
 
 ### Pi
 
-The repository root is a [Pi package](https://pi.dev/packages): its [`package.json`](../package.json) lists the shared skills directory and the [pstack Pi extension](../plugins/pstack/pi/index.ts). Install it with `pi install git:github.com/Forrest0721/pstack-codex`, or `pi install <clone path>` for a local checkout. This fork has not run the live Pi checks.
+The repository root is a [Pi package](https://pi.dev/packages): its [`package.json`](../package.json) lists the shared skills directory and the [pstack Pi extension](../plugins/pstack/pi/index.ts). Install it with `pi install git:github.com/Forrest0721/pstack-codex`, or `pi install <clone path>` for a local checkout.
 
 The extension supplies what Pi lacks natively, under the Claude Code names the skills use:
 
 - `agent` dispatches a child `pi --mode rpc` process with the skill's `subagent_type`, model, and effort, in the foreground or background, optionally in its own git worktree. A background agent's completion joins the running turn after its current tool calls, or starts a turn when the session is idle.
-- `send_message`, `list_agents`, and `stop_agent` message, list, and stop those agents. A message to a running agent is an RPC `steer` on the child's stdin, which the agent reads after its current tool calls before it carries on in the same run. A finished agent resumes with the message. An agent's status follows its process.
-- `ask_user_question` and `schedule_wakeup` match `AskUserQuestion` and `ScheduleWakeup`, and `/loop` matches the `loop` skill. In a child agent, asking a question and scheduling a wakeup both return an error.
+- `send_message`, `list_agents`, and `stop_agent` message, list, and stop those agents. A message to a running agent is an RPC `steer` on the child's stdin, which the agent reads after its current tool calls before it carries on in the same run. A finished agent resumes with the message. An agent's status follows its process. `list_agents`, a foreground agent's result, and each completion notice name the child's transcript, `<timestamp>_<session id>.jsonl` under `<agent dir>/pstack/<parent session id>/agents/`, so a user can follow a running agent with `tail -f` or render a finished one with `pi --export`. A running agent's `list_agents` entry also carries `activity`, its current or last tool call and its latest message, read from the child's RPC events and kept in memory, so the model sees it only in a `list_agents` result. The top-level session shows the count and the most recently active agent in a `pstack-agents` footer line, and the user can run `/pstack-agents` for a per-agent view that is not sent to the model.
+- `ask_user_question` and `schedule_wakeup` match `AskUserQuestion` and `ScheduleWakeup`, and `/loop` matches the `loop` skill. In a child agent, asking a question and scheduling a wakeup both return an error. Pi refuses to start when two extensions register the same tool name, so if you use another extension that provides `ask_user_question`, add a `pi ask tool: off` line to the override sheet and the pstack extension leaves that tool to it.
+- If you delegate through another subagent extension, such as `pi-subagents`, add a `pi agent tools: off` line to the override sheet. The pstack extension then registers none of `agent`, `send_message`, `list_agents`, `stop_agent`, and `/pstack-agents`, so the model sees one set of delegation tools. Everything else stays, including `ask_user_question`, `schedule_wakeup`, `/loop`, and the exit hook.
+- If you run Pi inside [herdr-core](https://github.com/herdrdev/herdr-core), add a `pi agent host: hc` line to the override sheet to run each agent as an interactive `pi` in its own `hc` terminal, named by its agent id, instead of a hidden `pi --mode rpc` process. You can watch an agent and type into it while it works. Its model, effort, read-only flag, worktree, and depth limit are unchanged. `send_message` types into its terminal with `hc send`, its reply is read from its transcript, and its terminal is removed when the run ends. It gets the parent's environment from a private file that the terminal reads and deletes before pi starts, so no value is on a command line, and herdr-core's own terminal variables (`HC_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM`) stay as herdr-core sets them. It starts with `--approve` or `--no-approve` after the parent session's project trust, so it never waits at the trust dialog. `stop_agent` sends SIGTERM to the terminal's pi, which stops its own agents, and SIGKILL after the same grace period as an RPC child. A resumed session ends an agent whose launching pi is gone, found by the pid recorded for its terminal, as it does an RPC child. A run that stops at a dialog fails with the terminal's screen as its error. On Linux, a prompt or message over 128 KiB fails the run, because `hc send` takes the text as one argument. Such an agent shows no `activity` in `list_agents`. Outside herdr-core, where `HC_TERMINAL_ID` is unset, the line has no effect.
 - At every agent start it adds the routing instruction, the override sheet `~/.pi/agent/pstack-models.md`, and a pointer to the Pi mapping to the system prompt.
 
-Family names such as `opus` resolve through the `pi` block of [`models.json`](../plugins/pstack/models.json) to model IDs for the provider the Pi session runs on. A ChatGPT sign-in (`openai`, or the legacy `openai-codex`) gets OpenAI models, and Anthropic or any other provider gets Claude models. Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription, and every subagent pstack starts adds to that bill. Run pstack in Claude Code to stay within a Claude plan's limits. A `pi models:` line in the sheet remaps any family name. The [Pi mapping](../plugins/pstack/skills/poteto-mode/references/pi-tools.md) lists every translation. The inherited [equivalence table](pi-equivalence.md) records the checks performed by `pstack-claude`; this fork has not rerun the live Pi checks.
+Family names such as `opus` resolve through the `pi` block of [`models.json`](../plugins/pstack/models.json) to model IDs for the provider the Pi session runs on. A ChatGPT sign-in (`openai`, or the legacy `openai-codex`) gets OpenAI models, and Anthropic or any other provider gets Claude models. Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription, and every subagent pstack starts adds to that bill. Run pstack in Claude Code to stay within a Claude plan's limits. A `pi models:` line in the sheet remaps any family name. The [Pi mapping](../plugins/pstack/skills/poteto-mode/references/pi-tools.md) lists every translation, and the [equivalence table](pi-equivalence.md) records the upstream checks.
 
 ### GitHub Copilot
 
-The Copilot CLI reads the Claude Code [marketplace](../.claude-plugin/marketplace.json). For the plugin it looks for `.github/plugin/plugin.json` before `.claude-plugin/plugin.json`, so pstack ships a [Copilot manifest](../plugins/pstack/.github/plugin/plugin.json) whose `hooks` field names [`hooks/copilot-hooks.json`](../plugins/pstack/hooks/copilot-hooks.json). Copilot then skips the Claude Code `hooks/hooks.json`, so each hook runs once, and Claude Code keeps reading its own manifest. The GitHub Copilot app loads plugins installed into `~/.copilot`. The upstream `pstack-claude` project reported a manual app check on 2026-09-25; this fork has not rerun it. To try a local checkout, pass its absolute path to `copilot plugin marketplace add`. Skills load by bare name through the `skill` tool, and a user types `/pstack:<skill>` in the CLI prompt; the agents keep their prefix, `pstack:poteto-agent` and `pstack:comment-sicko`.
+The Copilot CLI reads the Claude Code [marketplace](../.claude-plugin/marketplace.json). For the plugin it looks for `.github/plugin/plugin.json` before `.claude-plugin/plugin.json`, so pstack ships a [Copilot manifest](../plugins/pstack/.github/plugin/plugin.json) whose `hooks` field names [`hooks/copilot-hooks.json`](../plugins/pstack/hooks/copilot-hooks.json). Copilot then skips the Claude Code `hooks/hooks.json`, so each hook runs once, and Claude Code keeps reading its own manifest. The GitHub Copilot app loads plugins installed into `~/.copilot`. Upstream reported a manual check of routing, first-run setup, agent dispatch, `session hook: off`, and app-only tools on 2026-09-25. To try a local checkout, pass its absolute path to `copilot plugin marketplace add`. Skills load by bare name through the `skill` tool, and a user types `/pstack:<skill>` in the CLI prompt; the agents keep their prefix, `pstack:poteto-agent` and `pstack:comment-sicko`.
 
-Copilot's hook file runs the [SessionStart hook](../plugins/pstack/hooks/session-start.sh) with the `copilot` argument. It prints JSON `additionalContext`: the routing instruction plus a [Copilot addendum](../plugins/pstack/hooks/session-start-copilot.md). It reads the model sheet, which sits outside Copilot's path sandbox, and checks it with the [same POSIX `awk` validator](../plugins/pstack/skills/setup-pstack/scripts/sheet.awk) that `setup-pstack` runs through `check-sheet.sh` after it writes the sheet. A valid sheet adds one line per known role, rebuilt from the checked values, so no other sheet text reaches the context. An invalid sheet adds `sheet invalid:` with each problem, and a missing sheet adds a note; both tell the session to run `setup-pstack` first. A second hook, [`pre-tool-use.sh`](../plugins/pstack/hooks/pre-tool-use.sh) with the matcher `view|task|bash`, does three things on Copilot. It approves reads inside the plugin directory so playbooks and references load without a path-access prompt. It approves registered scripts with their declared argument contracts and matching interpreters, using a strict command form with no shell metacharacters. It checks path operands separately from prose fields; unknown scripts and argument forms take the normal permission flow. Setup, SessionStart, and PreToolUse share one sheet decoder, including UTF-16LE support. While the sheet is valid, it denies a `pstack:*` `task` call whose `model` is not one of the saved choices, with the saved IDs in the reason. It stays silent on everything else and always exits 0, because Copilot denies a tool call when the hook fails; an `awk` error still reaches stderr. Copilot runs plugin hooks on every session start, so the Claude matcher does not apply. The hook runs lazily, after the first message is submitted and before the first model turn, including when that message is a slash command such as `/pstack:arena`. A resumed session runs it again with source `resume`, and the model still sees one routing block. On CLI 1.0.87 through 1.0.92, the context of several plugins' session-start hooks merges ([github/copilot-cli#3589](https://github.com/github/copilot-cli/issues/3589) reported that only the last one survived). If a version drops the merge, use the standing instruction from `setup-pstack`. On 1.0.92, when the CLI's cached experiment assignment turns on computer use, `-p` sessions load no plugin skills while interactive sessions still do; the smoke test clears that cache before each `-p` probe.
+Copilot's hook file runs the [SessionStart hook](../plugins/pstack/hooks/session-start.sh) with the `copilot` argument. It prints JSON `additionalContext`: the routing instruction plus a [Copilot addendum](../plugins/pstack/hooks/session-start-copilot.md). It reads the model sheet, which sits outside Copilot's path sandbox, and checks it with the [same POSIX `awk` validator](../plugins/pstack/skills/setup-pstack/scripts/sheet.awk) that `setup-pstack` runs through `check-sheet.sh` after it writes the sheet. A valid sheet adds one line per known role, rebuilt from the checked values, so no other sheet text reaches the context. An invalid sheet adds `sheet invalid:` with each problem, and a missing sheet adds a note; both tell the session to run `setup-pstack` first. A second hook, [`pre-tool-use.sh`](../plugins/pstack/hooks/pre-tool-use.sh) with the matcher `view|task|bash`, does three things on Copilot. It approves reads inside the plugin directory so playbooks and references load without a path-access prompt. It approves registered scripts with their declared argument contracts and matching interpreters, using a strict command form with no shell metacharacters. It checks path operands separately from prose fields; unknown scripts and argument forms take the normal permission flow. Setup, SessionStart, and PreToolUse share one sheet decoder, including UTF-16LE support. While the sheet is valid, it denies a `pstack:*` `task` call whose `model` is not one of the saved choices, with the saved IDs in the reason. It stays silent on everything else and always exits 0, because Copilot denies a tool call when the hook fails; an `awk` error still reaches stderr. On Windows, Copilot runs each hook's `powershell` string in place of its `command`. SessionStart then runs the PowerShell adapter, which checks the sheet with the rules and problem wording of `sheet.awk`. PreToolUse exits 0 with no decision, so on Windows a read inside the plugin asks for path access, registered scripts take the normal permission flow, and the `task` model check does not run. Copilot runs plugin hooks on every session start, so the Claude matcher does not apply. The hook runs lazily, after the first message is submitted and before the first model turn, including when that message is a slash command such as `/pstack:arena`. A resumed session runs it again with source `resume`, and the model still sees one routing block. On CLI 1.0.87 through 1.0.92, the context of several plugins' session-start hooks merges ([github/copilot-cli#3589](https://github.com/github/copilot-cli/issues/3589) reported that only the last one survived). If a version drops the merge, use the standing instruction from `setup-pstack`. On 1.0.92, when the CLI's cached experiment assignment turns on computer use, `-p` sessions load no plugin skills while interactive sessions still do; the smoke test clears that cache before each `-p` probe.
 
 pstack ships no default Copilot models, because the models an account reaches depend on its plan and policy. The first skill that dispatches on role models runs `setup-pstack`. It asks one `ask_user` question per tier and panel slot, each a short list drawn from the `task` tool's models and grouped by vendor, and recommends no model. It then writes `${COPILOT_HOME:-~/.copilot}/pstack-models.md` and runs `check-sheet.sh`, and later sessions receive its choices from the hook. Choose panel models from distinct vendors. A role value's `@<level>` suffix and the sheet's `default effort` line map to the `task` tool's `reasoning_effort`.
 
@@ -163,9 +338,19 @@ Copilot lists only part of a large plugin's skills in its prompt, so some pstack
 
 [`tests/copilot-smoke.sh`](../tests/copilot-smoke.sh) installs the checkout into a throwaway `COPILOT_HOME` and checks installation, routing, `session hook: off`, agent dispatch with an explicit model, first-run setup, that setup writes no sheet without the user's answers and exactly the supplied IDs with them, and that saved choices and plugin files reach a session without `--allow-all-paths` or any path-access request, from each session's `events.jsonl` and the written sheet. It runs the setup checks once per model in `SMOKE_SETUP_MODELS`. It also checks the `PreToolUse` deny, a vendored script and `check-sheet.sh` run with no permission request, that an injected sheet line stays out of the context, that an invalid sheet yields `sheet invalid`, that each hook fires once, the merge with a second plugin's session-start context, a `-p` resume, and, on a pseudo-terminal through [`tests/copilot-tui.py`](../tests/copilot-tui.py), a slash-command first message and an interactive resume. It needs a signed-in `copilot` CLI, spends about twenty premium requests, and skips when `copilot` is missing. CI does not run it.
 
+### Muse
+
+The Muse build is a native Muse plugin bundle rooted at `plugins/pstack/`. Its [manifest](../plugins/pstack/.muse-plugin/plugin.json) lists every shared skill as a skill capability and two inline `SessionStart` hooks, one running the shell hook script and one running the PowerShell hook script, each with the `muse` argument. The generator owns the manifest's skill list and hooks, so the list always matches the tree and the hooks always run the argvs in `MUSE_HOOKS` in `tools/runtimes.mjs`. Muse rejects a command whose id duplicates a skill id, so the build ships no command templates: Muse lists each user-invocable skill as `/<name>` itself, and plugin skills load with `read_skill` as `plugin:pstack:<name>`.
+
+Install from a clone using the [upstream instructions](https://github.com/michael-denyer/pstack-claude/blob/v0.9.155/README.md#install), then approve the plugin. Muse runs third-party hooks and agent definitions only after `muse plugins approve pstack`; until then the skills work on request and nothing routes automatically. Once approved, the hook prints the [Muse routing instruction](../plugins/pstack/hooks/session-start-muse.md) as plain additional context, plus the saved role lines from `${XDG_CONFIG_HOME:-~/.config}/muse/pstack-models.md` when the sheet has any. Only known role lines whose entries are model IDs or aliases reach the context, rebuilt from their checked values. `session hook: off` in the sheet disables the injection, as on the other runtimes.
+
+Muse caps its skill catalog at 32 KB, so with pstack's 68 skills installed it compacts descriptions to fit; no skill id is dropped, and every skill still loads by name. The plugin's four `agents/` files register as Muse agent definitions under scoped ids such as `pstack/poteto-agent`, so poteto-mode's dispatches resolve as written, through the Muse mapping. A role's effort suffix passes as a Workflow child's `effort`, the Muse form of the dispatch effort field every runtime now uses. The Muse block of `models.json` gives a Muse model per tier; `subagent_spawn` takes a definition rather than a model, so per-role models apply where the dispatch takes one (a Workflow child's `model`), and the mapping says so. The `typescript-best-practices` skill's `paths` frontmatter is metadata on Muse, so `muse skills validate` reports it as an unsupported-field warning while the skill stays valid.
+
+Update an installed copy after a `git pull` with `muse plugins update pstack`, and re-approve when Muse asks, since approval is pinned to the hook and agent definitions it first saw. Remove it with `muse plugins remove pstack`.
+
 ## Configuration and dependencies
 
-Invoke [setup-pstack](../plugins/pstack/skills/setup-pstack/SKILL.md) to choose models for each role. It detects available models, confirms the choices, and writes an override sheet. Its [runtime table](../plugins/pstack/skills/setup-pstack/SKILL.md#other-runtimes) names the sheet path and loading mechanism for each runtime. Defaults live in [models.json](../plugins/pstack/models.json).
+Invoke [setup-pstack](../plugins/pstack/skills/setup-pstack/SKILL.md) to choose models for each role. It detects available models, confirms the choices, and writes an override sheet. Its [runtime table](../plugins/pstack/skills/setup-pstack/references/runtimes.md) names the sheet path and loading mechanism for each runtime. Defaults live in [models.json](../plugins/pstack/models.json).
 
 For design comparisons and reviews, choose distinct models available to your runtime. The default panel uses different Claude models.
 
@@ -173,9 +358,8 @@ Install dependencies for the workflows you use:
 
 | Dependency | When you need it |
 | --- | --- |
-| GitHub CLI, `gh` | PR monitoring and shipping. Authenticate with `gh auth login`. |
-| Bun | The bundled `watch-pr` and `orch` scripts. Their bootstrap installs script dependencies on first run. |
-| Graphite CLI, `gt` | The Orchestrate playbook and `orch` stack frontier. Shipping and autopilot playbooks use `gh` or Origin's CLI when available. |
+| GitHub CLI, `gh` | PR monitoring and shipping. The bundled `watch-pr` requires GitHub CLI 2.48 or later to read all pages of check suites. `watch-pr` and `ship-pr` read pull requests through GitHub GraphQL, which a Claude Code cloud session refuses. There `watch-pr` stops with exit 7 on its first read, and an agent can read the PR over REST with `gh api repos/<owner>/<repo>/pulls/<number>`. Authenticate with `gh auth login`. The playbooks use Origin's CLI, `origin`, instead when it can resolve the repository. |
+| Bun | The bundled `watch-pr` scripts. Their bootstrap installs script dependencies on first run. |
 | `plugin-dev` | Claude Code skill-authoring guidance used by `automate-me`, `reflect`, and `poteto-mode`. |
 
 Install the Claude Code skill-authoring companion with:
@@ -201,12 +385,14 @@ Use [create-verification-skill](../plugins/pstack/skills/create-verification-ski
 package.json                      Pi package manifest
 plugins/pstack/
   .claude-plugin/plugin.json      Claude Code plugin manifest
-  .codex-plugin/                  Codex manifest and generated prompt stubs
+  .codex-plugin/plugin.json       Codex plugin manifest
   .github/plugin/plugin.json      GitHub Copilot plugin manifest
+  .muse-plugin/plugin.json        Muse native plugin manifest (skill list generated)
   pi/                            Pi extension (subagent, question, and wake-up tools)
+  opencode/                      OpenCode 2 server plugin
   skills/                        Shared skills, references, and scripts
-  agents/                        Claude Code subagent definitions
-  hooks/                         Startup routing for Claude Code, Codex, and Copilot; Copilot tool checks
+  agents/                        Claude Code subagent definitions (Muse agent definitions too)
+  hooks/                         Startup routing for Claude Code, Codex, Copilot, Muse, MiniMax Code, Antigravity, and OpenCode; Copilot tool checks
 tools/                           Generation, validation, and upstream sync
 tests/                           Repository checks
 ```
@@ -215,7 +401,7 @@ Skills-only installs use `plugins/pstack/skills/`. Agent references and license 
 
 ### Generated files and checks
 
-The [generator](../tools/generate.mjs) updates versions, model defaults, Codex prompts, Copilot preambles and role lists, and portable reference files, and validates the Pi package manifest. The [slash-command table](#slash-commands) supplies the Codex prompt descriptions and order. Edit that table when changing a menu description, then regenerate. Keep a row for every public skill, with `poteto-mode` first.
+The [generator](../tools/generate.mjs) updates versions, model defaults, Copilot and Muse preambles and role lists, the Muse manifest's skill list, Codex invocation metadata for the principle leaves, and portable reference files, and validates the Pi package manifest. It also fails when the [slash-command table](#slash-commands) and the public skills disagree. Keep a row for every public skill, with `poteto-mode` first.
 
 [Documentation fact tests](../tests/readme-facts.test.mjs) check the skill counts and upstream pin. The table parser requires the header `| command | use it when |`.
 
@@ -233,13 +419,11 @@ CI also checks shell scripts, workflows, Markdown, relative links, and the bundl
 
 ### Port scope and attribution
 
-The skill tree is synced against upstream `df58112` (v0.15.15).
+This distribution is based on [`pstack-claude` v0.9.155](https://github.com/michael-denyer/pstack-claude/releases/tag/v0.9.155). The skill tree is synced against upstream `ca782ed` (v0.15.48). The thermos skills and agents are synced against `118e73b` (thermos 1.0.0).
 
-This repository is an unofficial downstream distribution of Michael Denyer's [pstack-claude](https://github.com/michael-denyer/pstack-claude). His port adapts Lauren Tan's pstack from Cursor to Claude Code and shares the skills with other runtimes. It includes seven cursor-team-kit skills and an independently authored `babysit` skill. `pstack-claude` supplies Claude Code plugin registration and routing, the original Codex manifests, shortcuts, and tool mapping, the Pi package, extension, and tool mapping, and the GitHub Copilot hooks and tool mapping.
+`pstack-codex` packages Michael Denyer's [`pstack-claude`](https://github.com/michael-denyer/pstack-claude), which adapts Lauren Tan's pstack from Cursor to Claude Code and other runtimes. This repository maintains the `pstack@pstack-codex` marketplace identity, its Codex release checks, and its documentation. The bundle includes six cursor-team-kit skills, three thermos skills with two review subagents, and an independently authored `babysit` skill.
 
-The maintainer uses Codex daily and renamed the marketplace identity to `pstack@pstack-codex`. This fork mainly changes packaging, documentation, and Codex release verification. Other runtime adapters remain available, but this maintainer has performed live release verification only on Codex. This is an independent community project, not endorsed by OpenAI, Cursor, Michael Denyer, or Lauren Tan.
-
-Cursor-specific automations, sticky-mode metadata, the Grok Bot UI workflow, and the Cursor UI tutorial are excluded. [tools/upstream.json](../tools/upstream.json) records the revisions and exclusions, [tools/substitutions.json](../tools/substitutions.json) holds the Cursor-to-Claude rewrite rules, and [CHANGES.md](../CHANGES.md) records each release. The bundled `thermo-nuclear-code-quality-review` provides a maintainability review when a workflow calls for one.
+Cursor-specific automations, sticky-mode metadata, the Grok Bot UI workflow, and the Cursor UI tutorial are excluded. [tools/upstream.json](../tools/upstream.json) records the revisions and exclusions, [tools/substitutions.json](../tools/substitutions.json) holds the Cursor-to-Claude rewrite rules, and [CHANGES.md](../CHANGES.md) records each release. The bundled `thermo-nuclear-code-quality-review` provides a maintainability review when a workflow calls for one, `thermo-nuclear-review` a correctness and security audit, and `thermos` runs both as parallel subagents.
 
 For skill changes, follow the [sync boundary](../CONTRIBUTING.md#the-sync-boundary). Runtime adaptations and workflow changes both land here, and a workflow change is declared as a fork.
 
